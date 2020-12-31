@@ -77,3 +77,20 @@ Instances currently registered with Eureka
   - eureka.instance.lease-renewal-interval-in-seconds=60
   - eureka.instance.lease-expiration-duration-in-seconds=5
   - 查看web-ui发现eureka-client服务自动剔除
+  
+## 五、搭建高可用注册中心
+
+- host文件修改
+  - 目录
+    - Windows ‪C:\Windows\System32\drivers\etc\hosts
+    - Linux /etc/hosts
+    - Mac /private/etc/hosts
+  - 内容
+    - 127.0.0.1 peer1
+    - 127.0.0.1 peer2
+- 启动双注册中心
+  - http://peer1:20001/
+  - http://peer2:20000/
+- 单节点注册+同步机制
+- 客户端配置双节点
+  - eureka.client.service-url.defaultZone: http://peer2:20000/eureka/, http://peer1:20001/eureka/
