@@ -62,3 +62,9 @@ Instances currently registered with Eureka
 - 创建启动类和服务内容
 - 查看注册中心是否有该子项目
 
+## 三、创建服务消费者
+
+- 创建eureka-consumer子项目
+- 添加pom依赖
+- 创建启动类和Controller
+- 向eureka-client发起调用
