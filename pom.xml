@@ -10,6 +10,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <modules>
         <module>eureka/eureka-server</module>
+        <module>eureka/eureka-client</module>
     </modules>
 
     <dependencyManagement>

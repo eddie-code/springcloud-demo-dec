@@ -54,3 +54,11 @@ Instances currently registered with Eureka
 
 1. Last 1000 cancelled leases  最近1000个已取消租约
 1. Last 1000 newly registered leases  最近1000个新注册的租约
+
+## 二、搭建注册服务提供方
+
+- 创建eureka-client子项目
+- 添加pom依赖
+- 创建启动类和服务内容
+- 查看注册中心是否有该子项目
+
