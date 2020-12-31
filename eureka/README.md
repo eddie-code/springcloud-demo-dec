@@ -68,3 +68,12 @@ Instances currently registered with Eureka
 - 添加pom依赖
 - 创建启动类和Controller
 - 向eureka-client发起调用
+
+## 四、启用心跳健康检查
+
+- 配置客户端心跳和续约间隔
+- 服务端自保配置
+- 模拟服务剔除场景
+  - eureka.instance.lease-renewal-interval-in-seconds=60
+  - eureka.instance.lease-expiration-duration-in-seconds=5
+  - 查看web-ui发现eureka-client服务自动剔除
