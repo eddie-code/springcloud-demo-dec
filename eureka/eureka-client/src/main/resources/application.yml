@@ -2,7 +2,7 @@ spring:
   application:
     name: eureka-client
 server:
-  port: 30000
+  port: 30003
 eureka:
   client:
     service-url:

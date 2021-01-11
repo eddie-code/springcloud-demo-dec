@@ -1,5 +1,6 @@
 package com.example.springcloud.config;
 
+import com.example.springcloud.rules.MyRule;
 import com.netflix.loadbalancer.IRule;
 import com.netflix.loadbalancer.RandomRule;
 import org.springframework.cloud.netflix.ribbon.RibbonClient;
@@ -17,7 +18,8 @@ import org.springframework.context.annotation.Configuration;
  * @modified by
  */
 @Configuration
-@RibbonClient(name = "eureka-client", configuration = com.netflix.loadbalancer.RandomRule.class)
+//@RibbonClient(name = "eureka-client", configuration = com.netflix.loadbalancer.RandomRule.class)
+@RibbonClient(name = "eureka-client", configuration = MyRule.class)
 public class RibbonConfiguration {
 
     /**
