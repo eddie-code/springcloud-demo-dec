@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.springcloud.service;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 /**
  * @author eddie.lee
  * @ProjectName springcloud-demo-dec
- * @Package com.example.service
+ * @Package com.example.springcloud.service
  * @ClassName FeignService
  * @blog blog.eddilee.cn
  * @description

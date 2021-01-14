@@ -1,6 +1,6 @@
-package com.example.controller;
+package com.example.springcloud.controller;
 
-import com.example.service.FeignService;
+import com.example.springcloud.service.FeignService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * @author eddie.lee
  * @ProjectName springcloud-demo-dec
- * @Package com.example.controller
+ * @Package com.example.springcloud.controller
  * @ClassName DemoController
  * @blog blog.eddilee.cn
  * @description

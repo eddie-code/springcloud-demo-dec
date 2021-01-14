@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: feign-client
+server:
+  port: 40002
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:20000/eureka/ # 注册中心
+#      defaultZone: http://peer2:20000/eureka/, http://peer1:20001/eureka/ # 高可用注册中心
+  instance:
+    lease-renewal-interval-in-seconds: 5 # 每隔5秒钟, 向服务中心发送一条续约指令
+    lease-expiration-duration-in-seconds: 30 # 如果30秒内, 依然没有收到续约请求, 判断服务过期
