@@ -18,6 +18,7 @@
         <module>feign/feign-consumer</module>
         <module>feign-client-intf</module>
         <module>feign/feign-client</module>
+        <module>feign/feign-consumer-advanced</module>
     </modules>
 
     <dependencyManagement>
