@@ -17,7 +17,8 @@
 
 - 构建公共接口层（注意不要多引入依赖）
   - feign-client-intf
-- 改造服务提供者
+- 改造服务提供者 (Provider)
+  - feign-client
 - 创建基于公共接口层的服务消费者
   - feign-client
   -  [GET sayHi](localhost:40002/sayHi)
@@ -36,3 +37,13 @@
   4. feign-client-intf 就会找到公共接口层的 FeignService {@FeignClient("feign-client")}
   5. 通过 Feign 在 EurekaServer 找到 feign-client 服务 
   6. 结论： feign-consumer-advanced --> feign-client-intf <-- feign-client
+  
+### 2-12 配置重试和超时策略
+
+- 创建超时方法
+- 借助Ribbon实现超时重试
+- 多节点重试
+- 测试方法
+  - 启动三个 feign-client:${40002,40003,40004}
+  - 启动 feign-consumer-advanced:40001
+  - 请求 localhost:40001/retry?timeout=${0,3} (超时时间)

@@ -47,4 +47,24 @@ public class DemoController implements FeignService {
         friend.setPort(port);
         return friend;
     }
+
+    /**
+     * 传入超时秒数
+     *
+     * @param timeout 超时
+     * @return str
+     */
+	@Override
+	public String retry(int timeout) {
+		while (timeout-- >= 0) {
+		    // 超时时间 大于等于 0 就进入线程睡眠
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		log.info("retry=[{}]", port);
+		return port;
+	}
 }

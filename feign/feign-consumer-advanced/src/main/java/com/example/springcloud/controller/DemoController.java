@@ -39,5 +39,10 @@ public class DemoController {
         return feignService.sayHiPost(friend);
     }
 
+    @GetMapping("/retry")
+    public String retry(Integer timeout) {
+        return feignService.retry(timeout);
+    }
+
 
 }
