@@ -53,3 +53,31 @@ hystrix:
 ```xml
 localhost:50000/timeout?timeout=${0,1,2,3}
 ```
+
+### 1-9 Hystrix实现Request Cache减压 
+
+#### Request Cache减压
+
+- 降级? No <br> 其实 Request Cache只是一种减压手段
+- 使用@CacheResult缓存返回值
+- 什么我的Request Cache不生效
+
+#### 要点：
+1. lombok.@Cleanup 注解, 代替 try...finally... 
+1. HystrixRequestContext context = HystrixRequestContext.initializeContext(); 上下文, 配合 @CacheKey 使用
+1. @HystrixCommand(commandKey = "cacheKey") 配合 application.yml  (方式三)
+1. RequestCacheService 引用 FeignService 还是 MyService 呢?
+   1. RequestCacheService 如果直接引用 FeignService 会启动报错的, 需要在 @FeignClient 加入 primary = false 属性 (相关调用的Feign接口都需要添加)  *不推荐, 改动多*
+   1. RequestCacheService 直接引入当前项目接口 hystrix-fallback#com.example.springcloud.service.MyService  *推荐, 改动少*
+
+#### PostMan测试
+
+```xml
+GET localhost:50000/cache?name=Eddie
+
+after request cache = [Eddie]
+request cache = [Eddie!]
+after request cache = [Eddie!]
+```
+
+> request cache 只会缓存传入的匹配的参数
