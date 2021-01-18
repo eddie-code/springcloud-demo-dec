@@ -33,6 +33,19 @@ public class Fallback implements MyService {
 	}
 
 	/**
+	 * 传入超时秒数
+	 *
+	 * @param timeout
+	 *            超时
+	 * @return str
+	 */
+	@Override
+	public String retry(int timeout) {
+		String msg = "u are late !";
+		return msg;
+	}
+
+	/**
 	 * 请求 eureka-client/sayHi
 	 *
 	 * @return str
@@ -50,18 +63,6 @@ public class Fallback implements MyService {
 	 */
 	@Override
 	public Friend sayHiPost(Friend friend) {
-		return null;
-	}
-
-	/**
-	 * 传入超时秒数
-	 *
-	 * @param timeout
-	 *            超时
-	 * @return str
-	 */
-	@Override
-	public String retry(int timeout) {
 		return null;
 	}
 
