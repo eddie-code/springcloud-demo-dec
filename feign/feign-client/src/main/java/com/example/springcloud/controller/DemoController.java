@@ -22,42 +22,43 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 public class DemoController implements FeignService {
 
-    @Value("${server.port}")
-    private String port;
+	@Value("${server.port}")
+	private String port;
 
-    /**
-     * 请求 eureka-client/sayHi
-     *
-     * @return str
-     */
-    @Override
-    public String sayHi() {
-        return "This is " + port;
-    }
+	/**
+	 * 请求 eureka-client/sayHi
+	 *
+	 * @return str
+	 */
+	@Override
+	public String sayHi() {
+		return "This is " + port;
+	}
 
-    /**
-     * post 请求
-     *
-     * @param friend
-     * @return friend
-     */
-    @Override
-    public Friend sayHiPost(Friend friend) {
-        log.info("You are {}", friend.getName());
-        friend.setPort(port);
-        return friend;
-    }
+	/**
+	 * post 请求
+	 *
+	 * @param friend
+	 * @return friend
+	 */
+	@Override
+	public Friend sayHiPost(Friend friend) {
+		log.info("You are {}", friend.getName());
+		friend.setPort(port);
+		return friend;
+	}
 
-    /**
-     * 传入超时秒数
-     *
-     * @param timeout 超时
-     * @return str
-     */
+	/**
+	 * 传入超时秒数
+	 *
+	 * @param timeout
+	 *            超时
+	 * @return str
+	 */
 	@Override
 	public String retry(int timeout) {
 		while (timeout-- >= 0) {
-		    // 超时时间 大于等于 0 就进入线程睡眠
+			// 超时时间 大于等于 0 就进入线程睡眠
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -66,5 +67,15 @@ public class DemoController implements FeignService {
 		}
 		log.info("retry=[{}]", port);
 		return port;
+	}
+
+	/**
+	 * 访问此接口，必定抱出异常，用于测试
+	 *
+	 * @return str
+	 */
+	@Override
+	public String error() {
+		throw new RuntimeException("black sheep");
 	}
 }

@@ -6,4 +6,4 @@
 
 - [Eureka](eureka/README.md)
 - [Ribbon](ribbon/README.md)
-- [Feign](feign/README.md)
+- [Hystrix](hystrix/README.md)

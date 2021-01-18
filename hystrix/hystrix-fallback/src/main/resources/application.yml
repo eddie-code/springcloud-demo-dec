@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: hystrix-fallback
+  main:
+    allow-bean-definition-overriding: true
+server:
+  port: 50000
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:20000/eureka/ # 注册中心
+#      defaultZone: http://peer2:20000/eureka/, http://peer1:20001/eureka/ # 高可用注册中心
+
+feign:
+  hystrix:
+    enabled: true  # 开启Feign下面的Hystrix功能
+
+hystrix:
+  command:
+    default:
+      fallback:
+        enabled: true # 是否开启服务降级

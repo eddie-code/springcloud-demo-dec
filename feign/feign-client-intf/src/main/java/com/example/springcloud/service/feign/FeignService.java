@@ -40,9 +40,17 @@ public interface FeignService {
 	/**
 	 * 传入超时秒数
 	 * 
-	 * @param timeout 超时
+	 * @param timeout
+	 *            超时
 	 * @return str
 	 */
 	@GetMapping("/retry")
 	String retry(@RequestParam(name = "timeout") int timeout);
+
+	/**
+	 * 访问此接口，必定抱出异常，用于测试
+	 * @return str
+	 */
+	@GetMapping("/eeror")
+	public String error();
 }
