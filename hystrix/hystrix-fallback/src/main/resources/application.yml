@@ -4,7 +4,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
 server:
-  port: 50000
+  port: 50000  # 和 YoudaoDict.exe 端口冲突， 关闭 YoudaoDict.exe
 eureka:
   client:
     service-url:
@@ -28,7 +28,7 @@ hystrix:
          enabled: true # 该属性用来配置HystrixCommand.run()的执行是否启用超时时间。默认为true
         isolation:
           thread:
-            timeoutInMilliseconds: 2000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
+            timeoutInMilliseconds: 5000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
             interruptOnTimeout: true # 该属性用来配置当HystrixCommand.run()执行超时的时候是否要它中断
             interruptOnFutureCancel: true # 取消的时候终止线程
       requestCache:

@@ -2,6 +2,7 @@ package com.example.springcloud.hystrix;
 
 import com.example.springcloud.model.Friend;
 import com.example.springcloud.service.MyService;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -26,10 +27,24 @@ public class Fallback implements MyService {
 	 * @return str
 	 */
 	@Override
+	@HystrixCommand(fallbackMethod = "fallback2")
 	public String error() {
 		String msg = "Fallback: I'm not a black sheep any more";
 		log.info(msg);
-		return msg;
+		throw new RuntimeException("first fallback");
+	}
+
+	@HystrixCommand(fallbackMethod = "fallback3")
+	public String fallback2() {
+		String msg = "Fallback: again";
+		log.info(msg);
+		throw new RuntimeException("fallback again");
+	}
+
+	public String fallback3() {
+		String msg = "Fallback: again and again";
+		log.info(msg);
+		return "success";
 	}
 
 	/**

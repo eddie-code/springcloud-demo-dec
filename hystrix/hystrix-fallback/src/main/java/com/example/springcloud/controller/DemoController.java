@@ -3,6 +3,8 @@ package com.example.springcloud.controller;
 import com.example.springcloud.model.Friend;
 import com.example.springcloud.service.MyService;
 import com.example.springcloud.service.impl.RequestCacheService;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 import com.netflix.hystrix.strategy.concurrency.HystrixRequestContext;
 import lombok.Cleanup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,26 @@ public class DemoController {
 	public String timeout(Integer timeout) {
 		return myService.retry(timeout);
 	}
+
+	@GetMapping("/timeout2")
+	@HystrixCommand(fallbackMethod = "timeoutFallback", commandProperties = {
+			// 配置的3秒超时, 实际1S就超时降级
+			@HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "3000") })
+	public String timeout2(Integer timeout) {
+		return myService.retry(timeout);
+	}
+
+	/**
+	 * fallbackMethod = "timeoutFallback" 所指定的方法，入参必需一致
+	 * 
+	 * @param timeout 秒
+	 * @return str
+	 */
+	public String timeoutFallback(Integer timeout) {
+		return "sussess";
+	}
+
+
 
 	/**
 	 * lombok.@Cleanup 注解： <br>

@@ -81,3 +81,81 @@ after request cache = [Eddie!]
 ```
 
 > request cache 只会缓存传入的匹配的参数
+
+### 1-10 多级降级方案 
+
+#### 一错再错-多级降级
+
+- 模拟二级降级场景
+- 错无止境 - 有什么解决方案?
+
+##### 如何实现？ 通过 @HystrixCommand 注解实现
+
+```java
+@Override
+@HystrixCommand(fallbackMethod = "fallback2")
+public String error() {
+    String msg = "Fallback: I'm not a black sheep any more";
+    log.info(msg);
+    throw new RuntimeException("first fallback");
+}
+
+@HystrixCommand(fallbackMethod = "fallback3")
+public String fallback2() {
+    String msg = "Fallback: again";
+    log.info(msg);
+    throw new RuntimeException("fallback again");
+}
+
+public String fallback3() {
+    String msg = "Fallback: again and again";
+    log.info(msg);
+    return "success";
+}
+```
+
+##### 日志输出
+
+```java
+2021-01-20 09:17:34.817  INFO 4940 --- [trix-Fallback-1] c.example.springcloud.hystrix.Fallback   : Fallback: I'm not a black sheep any more
+2021-01-20 09:17:34.824  INFO 4940 --- [trix-Fallback-2] c.example.springcloud.hystrix.Fallback   : Fallback: again
+2021-01-20 09:17:34.825  INFO 4940 --- [trix-Fallback-2] c.example.springcloud.hystrix.Fallback   : Fallback: again and again
+```
+
+#### Hystrix注解方式配置超时时间
+
+```java
+@GetMapping("/timeout2")
+@HystrixCommand(fallbackMethod = "timeoutFallback", commandProperties = {
+        // 配置的3秒超时, 实际1S就超时降级
+        @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "3000") })
+public String timeout2(Integer timeout) {
+    return myService.retry(timeout);
+}
+
+/**
+ * fallbackMethod = "timeoutFallback" 所指定的方法，入参必需一致
+ * 
+ * @param timeout 秒
+ * @return str
+ */
+public String timeoutFallback(Integer timeout) {
+    return "sussess";
+}
+```
+
+##### 测试
+
+```java
+# "hystrix.command.default.execution.isolation..thread.timeoutInMilliseconds=2000" 所以返回的 "u are late !"
+localhost:50000/timeout2?timeout=3  
+
+# 修改 ... timeoutInMilliseconds=5000
+localhost:50000/timeout2?timeout=2
+localhost:50000/timeout2?timeout=5
+
+都是返回 sussess
+
+```
+
+> 注解方式需要注意一点："hystrix.command.default.execution.isolation..thread.timeoutInMilliseconds=2000" 配置文件的超时时间有冲突的, 在第一次 timeout2.myService.retry(timeout) 调用时候 配置文件就会生效, 会选择优先最短的超时时间为准. 所以配置文件需要设置比注解的超时时间高, 才会生效 "...timeoutInMilliseconds=5000"
