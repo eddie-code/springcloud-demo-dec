@@ -159,3 +159,59 @@ localhost:50000/timeout2?timeout=5
 ```
 
 > 注解方式需要注意一点："hystrix.command.default.execution.isolation..thread.timeoutInMilliseconds=2000" 配置文件的超时时间有冲突的, 在第一次 timeout2.myService.retry(timeout) 调用时候 配置文件就会生效, 会选择优先最短的超时时间为准. 所以配置文件需要设置比注解的超时时间高, 才会生效 "...timeoutInMilliseconds=5000"
+
+### 1-14 Feign集成Hystrix熔断器 
+
+#### 集成Hystrix熔断器
+
+- 熔断器参数配置
+- 验证断路器开关状态切换
+
+#### 熔断器相关配置
+
+```yaml
+# 熔断器配置 - 非主要的参数
+hystrix:
+  command:
+    default:
+      circuitBreaker:
+        enabled: true # 不重要配置 - 全局开关, 默认就是 true
+        forceOpen: false # 强制开启熔断开关 - 即使没有熔断也会走入熔断逻辑， 不要轻易开启
+        forceClosed: false # 强制关闭熔断开关 - 不要轻易开启
+
+---
+# 熔断器配置 - 主要的参数
+# {requestVolumeThreshold,errorThresholdPercentage,timeInMilliseconds} 综合三个参数,
+# 在20秒的时间窗口内, 当你的请求书达到预置=5的时候，我开始对你进行熔断统计的开关判断, 如果你在这个时间窗口内请求数的失败机率达到 50% 熔断开启
+hystrix:
+  command:
+    default:
+      circuitBreaker:
+        requestVolumeThreshold: 5 # 熔断的前提条件 (请求的数量), 在一定的时间窗口内, 请求达到5个以后才开始进行熔断判断
+        sleepWindowInMilliseconds: 15000 # 单位毫秒, 当熔断开启以后, 经过多少秒再进入半开状态  (查看日志，可以分别出是否已经开启，最后请求时间和下一条相隔1分半钟)
+        errorThresholdPercentage: 50 # 超过 50% 的失败请求, 则进入熔断开关开启
+      # 配置时间窗口
+      metrics:
+        rollingStats:
+          timeInMilliseconds: 20000 # 单位为毫秒
+```
+
+#### PostMan测试
+
+```properties
+# 快速请求十次改接口
+localhost:50000/timeout?timeout=1
+
+# 日志打印
+2021-01-20 14:52:46.010  INFO 18940 --- [io-40002-exec-8] c.e.s.controller.DemoController          : retry=[40002]
+2021-01-20 14:52:47.729  INFO 18940 --- [io-40002-exec-5] c.e.s.controller.DemoController          : retry=[40002]
+2021-01-20 14:52:50.192  INFO 18940 --- [io-40002-exec-4] c.e.s.controller.DemoController          : retry=[40002]
+2021-01-20 14:52:51.698  INFO 18940 --- [io-40002-exec-7] c.e.s.controller.DemoController          : retry=[40002]
+2021-01-20 14:52:52.989  INFO 18940 --- [io-40002-exec-9] c.e.s.controller.DemoController          : retry=[40002]
+2021-01-20 14:53:09.684  INFO 18940 --- [io-40002-exec-1] c.e.s.controller.DemoController          : retry=[40002]
+
+# 分析日志
+请求十次, 请求达到5个以后才开始进行熔断判断, 然后就会停止. 就会开启半开状态 sleepWindowInMilliseconds= 一分半钟.
+再第五条记录后, 时间相隔 2021-01-20 14:53:09.684 与 2021-01-20 14:55:33.649 看出已经开启
+
+```

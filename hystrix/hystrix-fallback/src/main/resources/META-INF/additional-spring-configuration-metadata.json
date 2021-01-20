@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "hystrix.command.default.metrics.rollingStats.timeInMilliseconds",
+      "type": "java.lang.String",
+      "description": "Description for hystrix.command.default.metrics.rollingStats.timeInMilliseconds."
+  }
+] }

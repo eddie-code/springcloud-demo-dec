@@ -15,9 +15,6 @@ feign:
   hystrix:
     enabled: true  # 开启Feign下面的Hystrix功能
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# https://blog.csdn.net/u013277209/article/details/110975722  #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 hystrix:
   command:
     default:
@@ -25,14 +22,14 @@ hystrix:
         enabled: true # 该属性用来设置服务降级策略是否启用，默认是true。如果设置为false，当请求失败或者拒绝发生时，将不会调用HystrixCommand.getFallback()来执行服务降级逻辑
       execution:
         timeout:
-         enabled: true # 该属性用来配置HystrixCommand.run()的执行是否启用超时时间。默认为true
+          enabled: true # 该属性用来配置HystrixCommand.run()的执行是否启用超时时间。默认为true
         isolation:
           thread:
-            timeoutInMilliseconds: 5000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
+            timeoutInMilliseconds: 1000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
             interruptOnTimeout: true # 该属性用来配置当HystrixCommand.run()执行超时的时候是否要它中断
             interruptOnFutureCancel: true # 取消的时候终止线程
-      requestCache:
-        enabled: true # 开启访问缓存功能
+#      requestCache:
+#        enabled: true # 开启访问缓存功能
 ---
 # 方式一：针对 com.example.springcloud.service.feign.FeignService.retry 来控制超时时间
 #hystrix:
@@ -53,13 +50,40 @@ hystrix:
 #            timeoutInMilliseconds: 3000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
 ---
 # 方式三：方法上面添加注解
+#hystrix:
+#  command:
+#    cacheKey:  # @HystrixCommand(commandKey = "cacheKey")
+#      execution:
+#        isolation:
+#          thread:
+#            timeoutInMilliseconds: 3000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
+
+---
+# 熔断器配置 - 非主要的参数
 hystrix:
   command:
-    cacheKey:  # @HystrixCommand(commandKey = "cacheKey")
-      execution:
-        isolation:
-          thread:
-            timeoutInMilliseconds: 3000 # 该属性用来配置HystrixCommand执行的超时时间，单位为毫秒
+    default:
+      circuitBreaker:
+        enabled: true # 不重要配置 - 全局开关, 默认就是 true
+        forceOpen: false # 强制开启熔断开关 - 即使没有熔断也会走入熔断逻辑， 不要轻易开启
+        forceClosed: false # 强制关闭熔断开关 - 不要轻易开启
+
+---
+# 熔断器配置 - 主要的参数
+# {requestVolumeThreshold,errorThresholdPercentage,timeInMilliseconds} 综合三个参数,
+# 在20秒的时间窗口内, 当你的请求书达到预置=5的时候，我开始对你进行熔断统计的开关判断, 如果你在这个时间窗口内请求数的失败机率达到 50% 熔断开启
+hystrix:
+  command:
+    default:
+      circuitBreaker:
+        requestVolumeThreshold: 5 # 熔断的前提条件 (请求的数量), 在一定的时间窗口内, 请求达到5个以后才开始进行熔断判断
+        sleepWindowInMilliseconds: 15000 # 单位毫秒, 当熔断开启以后, 经过多少秒再进入半开状态  (查看日志，可以分别出是否已经开启，最后请求时间和下一条相隔1分半钟)
+        errorThresholdPercentage: 50 # 超过 50% 的失败请求, 则进入熔断开关开启
+      # 配置时间窗口
+      metrics:
+        rollingStats:
+          timeInMilliseconds: 20000 # 单位为毫秒
+
 
 feign-client:
   ribbon:
