@@ -11,5 +11,5 @@ SpringCloud Greenwich.SR1
 - [Feign - 服务消费者](feign/README.md)
 - [Hystrix - 断路器](hystrix/README.md)
 
-Created by [Eddie.Lee](blog.eddilee.cn/) <br>
+Created by [Eddie.Lee](blog.eddilee.cn) <br>
 [Spring cloud edgware.SR2](https://www.cnblogs.com/EddieBlog/category/1186546.html) and [code downloads](https://github.com/eddie-code/SpringCloudDemo) prior to 2018
