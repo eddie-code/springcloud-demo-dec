@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: hystrix-turbine
+  main:
+    allow-bean-definition-overriding: true
+server:
+  port: 52000
+management:
+  server:
+    port: 52001
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:20000/eureka/ # 注册中心
+#      defaultZone: http://peer2:20000/eureka/, http://peer1:20001/eureka/ # 高可用注册中心
+
+turbine:
+  app-config: hystrix-consumer # 指定了所需要监控的服务名
+  cluster-name-expression: new String('default')  # 自定义用来区分不同的监控
+  combine-host-port: true # 将端口和hostname作为区分不同服务的条件 (默认只使用Host)
+  instanceUrlSuffix:
+    default: actuator/hystrix.stream
+  aggregator:
+    cluster-config: default

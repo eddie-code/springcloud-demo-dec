@@ -1,6 +1,6 @@
 spring:
   application:
-    name: hystrix-fallback
+    name: hystrix-consumer
   main:
     allow-bean-definition-overriding: true
 server:
@@ -92,3 +92,22 @@ feign-client:
     ReadTimeout: 8000  # 业务处理超时 单位：毫秒
     MaxAutoRetries: 0  # 每台机器最大重试次数
     MaxAutoRetriesNextServer: 0  # 可以再重试几台机器
+
+# actuator 来暴露所有端点 (turbine需要)
+#
+# 在 2.0 后过时了
+#management:
+#  security:
+#    enabled: false
+#
+# 在 2.0 后使用
+management:
+  endpoint:
+    env:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: '*'
