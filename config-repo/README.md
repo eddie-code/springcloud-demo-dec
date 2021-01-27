@@ -66,3 +66,20 @@
 - 功能控制：功能开关, 人工熔断开关, 蓝绿发布(金丝雀测试), 数据源切换
 - 业务规则：当日外汇利率, 动态文案, 规则引擎参数
 - 应用参数： 网关黑白名单, 缓存过期时间, 日志MDC设置
+
+
+## 1-5 准备工作 - Git Repo中的配置文件命名规则 
+
+### 创建GitHub配置仓库
+
+- 创建[Github](https://github.com/eddie-code/springcloud-demo-dec/tree/develop)仓库
+- 文件命名规则（文件名可不能随便起）
+- 添加配置文件和属性
+
+### 文件命名规则
+
+- Application & Profile
+  - {application}-{profile}.yml
+  - {application}-{profile}.properties
+  
+- Label - 代码分支的名称
