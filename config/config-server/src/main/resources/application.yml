@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/eddie-code/springcloud-demo-dec.git
+          search-paths: config-repo  # 如果一个仓库存放多个定义了不同名称的文件夹，再到里面的配置文件*.yml (多个情况下逗号分隔，也支持通配符*号)
+          force-pull: true  # 强制拉取资源文件
+#          default-label: develop # 指定存放配置的分支名称
+#          username: eddie-code
+#          password: ******
+
+server:
+  port: 60000

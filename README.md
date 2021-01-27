@@ -13,7 +13,7 @@ SpringBoot 2.1.5.RELEASE
 - [Hystrix - 断路器](hystrix/README.md)
 - [Hystrix-Turbine - 聚合信息](turbine/README.md)
 - [Hystrix-Dashboard - 仪表盘](dashboard/README.md)
-- [Config - 分布式配置中心](config-repo/README.md)
+- [Config - 分布式配置中心](config/README.md)
 
 Created by [Eddie.Lee](http://blog.eddilee.cn/) <br>
 [Spring cloud Edgware.SR2](https://www.cnblogs.com/EddieBlog/category/1186546.html) and [code downloads](https://github.com/eddie-code/SpringCloudDemo) prior to 2018
