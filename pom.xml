@@ -23,6 +23,8 @@
         <module>turbine/hystrix-turbine</module>
         <module>dashboard/hystrix-dashboard</module>
         <module>config/config-server</module>
+        <module>config/config-client</module>
+        <module>config/config-server-eureka</module>
     </modules>
 
     <dependencyManagement>

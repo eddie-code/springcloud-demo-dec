@@ -193,3 +193,30 @@ GET localhost:60000/develop/config-consumer-dev.json
 ```
 
 > 如若提示： "message": "No such label: master" 请添加对应的分支名称, 可在config-server配置文件或者请求时候添加
+
+
+## 1-15 使用对称性密钥进行加解密-1
+
+### 使用密钥对称加密
+
+- JDK中替换JCE
+- 改造config-server并生成加密字符串
+- 修改GitHub文件, 启动服务拉取配置
+
+
+1. 不限长度的JCE组件组件下载 (注意下载对应JDK版本的组件)
+1. 官网地址：https://www.oracle.com/technetwork/cn/java/javase/downloads/jce8-download-2133166-zhs.html
+   1. 如若下载不了可以 百度云盘下载 链接：https://pan.baidu.com/s/1cG-XJCCJCII_UZ7qfwNG2A  提取码：vav1
+1. 解压 jce_policy-8.zip
+1. Windows版本 替换 E:\Program Files\Java\jdk1.8.0_144\jre\lib\security 中的  local_policy.jar 与  US_export_policy.jar
+
+### 创建一个 config-server-eureka 项目
+
+- 加入 eureka 客户端服务发现
+- bootstrap.yml 添加 encrypt.key=20210127
+
+### 启动尝试
+
+1. EurekaServerApplication :20000/
+1. ConfigServerEurekaApplication :60001/
+1. GET localhost:60001/encrypt/status  返回 { "status": "OK" }

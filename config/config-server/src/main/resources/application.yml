@@ -14,3 +14,10 @@ spring:
 
 server:
   port: 60000
+
+# 不限长度的JCE组件组件下载 (注意下载对应JDK版本的组件)
+# Java Cryptography Extension (JCE) 无限强度权限策略文件 8 下载
+# 官网地址：https://www.oracle.com/technetwork/cn/java/javase/downloads/jce8-download-2133166-zhs.html
+# 如若下载不了可以 百度云盘下载 链接：https://pan.baidu.com/s/1cG-XJCCJCII_UZ7qfwNG2A  提取码：vav1
+# 解压 jce_policy-8.zip
+# Windows版本 替换 E:\Program Files\Java\jdk1.8.0_144\jre\lib\security 中的  local_policy.jar 与  US_export_policy.jar
