@@ -202,7 +202,7 @@ GET localhost:60000/develop/config-consumer-dev.json
 - JDK中替换JCE
 - 改造config-server并生成加密字符串
 - 修改GitHub文件, 启动服务拉取配置
-
+  
 
 1. 不限长度的JCE组件组件下载 (注意下载对应JDK版本的组件)
 1. 官网地址：https://www.oracle.com/technetwork/cn/java/javase/downloads/jce8-download-2133166-zhs.html
@@ -213,10 +213,46 @@ GET localhost:60000/develop/config-consumer-dev.json
 ### 创建一个 config-server-eureka 项目
 
 - 加入 eureka 客户端服务发现
-- bootstrap.yml 添加 encrypt.key=20210127
+- bootstrap.yml 添加 encrypt.key=20210127 【加密解密所使用的key】
 
 ### 启动尝试
 
 1. EurekaServerApplication :20000/
 1. ConfigServerEurekaApplication :60001/
 1. GET localhost:60001/encrypt/status  返回 { "status": "OK" }
+
+## 1-16 使用对称性密钥进行加解密-2 
+
+### 加密
+
+```xml
+POST localhost:60001/encrypt
+
+Body --> Test --> 输出自定义的值, 比如KFC  【支持中文】 
+
+返回： d2ac7be4356bc2b56523740a19743d95cef12ca034b77a804aaa49b8a3094b9b
+
+每次请求的返回值都不一样的
+```
+
+### 解密
+
+```xml
+POST localhost:60001/decrypt
+
+Body --> Test --> d2ac7be4356bc2b56523740a19743d95cef12ca034b77a804aaa49b8a3094b9b
+
+返回加密时的值
+```
+
+### 启动服务测试
+
+1. 在 Github 修改 config-repo/config-consumer-prod.yml
+1. 修改 config-repo/config-client 追加 food: '{cipher}123fad4ddc8ad7f3a1a2f3d32c97ae429e3747094f1de744500a4a7d4403eaa6'
+1. 启动服务
+    1. EurekaServerApplication :20000/
+    1. ConfigServerEurekaApplication :60001/
+    1. ConfigClientApplication :61000/
+1. 请求 GET http://localhost:60001/develop/config-consumer-prod.yml 查看是否正常返回 food 的值
+1. 请求 GET localhost:61000/refresh/words 看是否返回正常
+1. 请求 GET localhost:61000/refresh/dinner 看是否返回正常
