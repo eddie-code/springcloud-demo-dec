@@ -256,3 +256,92 @@ Body --> Test --> d2ac7be4356bc2b56523740a19743d95cef12ca034b77a804aaa49b8a3094b
 1. 请求 GET http://localhost:60001/develop/config-consumer-prod.yml 查看是否正常返回 food 的值
 1. 请求 GET localhost:61000/refresh/words 看是否返回正常
 1. 请求 GET localhost:61000/refresh/dinner 看是否返回正常
+
+## 使用非对称性密钥进行加解密 （实际业务推荐）
+
+### Windows 
+
+CMD
+```cmd
+PS E:\Program Files\Java\jdk1.8.0_144\jre\bin> keytool -genkeypair -alias eddie-key-store -keyalg RSA -keypass eddie-keypass -keystore server.jks -storepass eddie-storepass
+您的名字与姓氏是什么?
+  [Unknown]:  eddie
+您的组织单位名称是什么?
+  [Unknown]:  eddie
+您的组织名称是什么?
+  [Unknown]:  eddie
+您所在的城市或区域名称是什么?
+  [Unknown]:  eddie
+您所在的省/市/自治区名称是什么?
+  [Unknown]:  eddie
+该单位的双字母国家/地区代码是什么?
+  [Unknown]:  eddie
+CN=eddie, OU=eddie, O=eddie, L=eddie, ST=eddie, C=eddie是否正确?
+  [否]:  y
+```
+
+生成 server.jks
+
+![](.README_images/server.jks_img.png)
+
+### config-server-eureka项目的修改配置文件
+
+bootstrap.yml
+
+```yaml
+encrypt:
+  key-store:
+    location: classpath:/server.jks
+    password: eddie-storepass
+    alias: eddie-key-store
+    secret: eddie-keypass
+```
+
+pom.xml 
+
+```xml
+<!-- 避免maven过滤文件的配置 -->
+<build>
+    <resources>
+        <resource>
+            <directory>src/main/resources</directory>
+            <filtering>true</filtering>
+            <excludes>
+                <exclude>**/*.jks</exclude>
+            </excludes>
+        </resource>
+        <resource>
+            <directory>src/main/resources</directory>
+            <filtering>false</filtering>
+            <includes>
+                <include>**/*.jks</include>
+            </includes>
+        </resource>
+    </resources>
+</build>
+```
+
+### 启动与测试
+1. 启动服务
+    1. EurekaServerApplication :20000/
+    1. ConfigClientApplication :61000/
+    1. ConfigServerEurekaApplication :60001/
+1. PostMan测试
+    1. 加密 POST localhost:60001/encrypt
+        1. Body --> Test --> "自定义加密内容"
+        1. 返回 ${自定义加密内容后的值}
+    1. 解密 localhost:60001/decrypt
+        1. Body --> Test --> ${自定义加密内容后的值}
+        1. 返回 "自定义加密内容"
+    1. 额外测试接口请求
+        1. localhost:61000/refresh/dinner
+        1. Body --> Test --> ${自定义加密内容后的值}
+        1. 返回 "May I have one ${自定义加密内容}"   
+        
+> config-consumer-prod.yml 里面 food: '{cipher}记得换回新值'  <br> 重启一下服务因为还没有开启自动刷新配置
+
+![](.README_images/e65e7327.png)
+
+![](.README_images/3253ee92.png)
+
+![](.README_images/f3b8ac61.png)

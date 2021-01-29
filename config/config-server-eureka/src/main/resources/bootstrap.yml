@@ -1,2 +1,6 @@
 encrypt:
-  key: 20210127
+  key-store:
+    location: classpath:/server.jks
+    password: eddie-storepass
+    alias: eddie-key-store
+    secret: eddie-keypass
