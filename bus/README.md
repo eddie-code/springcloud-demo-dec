@@ -35,8 +35,8 @@
 - GET 
     - http://localhost:61001/refresh/words
     - http://localhost:61002/refresh/words
-- 修改Github上的配置值 springcloud-demo-dec/config-repo/config-consumer-prod.yml
-    - words: 'God bless u'   修改成 words: 'God bless u，eddie~'
+- 修改Github上的配置值 [springcloud-demo-dec/config-repo/config-consumer-prod.yml](https://github.com/eddie-code/springcloud-demo-dec/blob/develop/config-repo/config-consumer-prod.yml)
+    - words: 'God bless u'  修改成  words: 'God bless u，eddie~'
 - POST http://localhost:60002/actuator/bus-refresh  (Postman请求后的状态码是 204 = 成功)
 
-> 还有一种方式： POST http://localhost:61001/actuator/bus-refresh 或者 61002 端口, 也是会刷新配置成功. 这就是意味着无论你发送刷新请求到配置中心, 又或者是下面的节点, 也是可以的.
+> 还有一种方式： POST http://localhost:61001/actuator/bus-refresh 或者 61002 端口, 也是会刷新配置成功. <br> 这就是意味着无论你发送刷新请求到配置中心, 又或者是下面的节点, 也是可以的.
