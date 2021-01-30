@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: config-bus-client
+  rabbitmq:
+    host: 192.168.8.240
+    port: 5672
+    username: guest
+    password: guest
+  cloud:
+    stream:
+      default-binder: rabbit # 如果引入多个 binder 比如 rabbitmq + kafka 同时添加了pom.xml依赖就需要指定
+    config:
+      name: config-consumer  # 如果 Github 上面的配置文件的名称 不是 ${spring.application.name} 就需要使用 ${spring.cloud.name} 强制替换
+      #      uri: http://localhost:60000
+      discovery:
+        enabled: true
+        service-id: config-bus-server
+      profile: prod
+      label: develop
+
+server:
+  port: 61001
+
+myWords: ${words}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:20000/eureka/
+
+management:
+  endpoint:
+    env:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: '*'
