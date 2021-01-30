@@ -345,3 +345,28 @@ pom.xml
 ![](.README_images/3253ee92.png)
 
 ![](.README_images/f3b8ac61.png)
+
+
+## 1-17 【架构思考】分布式配置中心的其他花式用法
+
+### 分布式配置中心的通用场景
+
+#### 环境隔离
+
+- Config Server
+    - 日常环境 timeout=10000ms
+    - 预发环境 timeout=5000ms
+    - 生产环境 timeout=1000ms
+通过 Git文件+Path+Branch
+
+#### 业务开关+定向推送
+
+比如一些业务需要作为开关, 可以使用Config Server 打开功能
+
+#### 修改业务逻辑
+
+```xml
+Config Service --> 网关黑名单（www.baidu.com） --> 网关层 
+               --> 费率-规则引擎 --> 下单接口
+               --> 熔断阀值 --> 下单接口
+```
