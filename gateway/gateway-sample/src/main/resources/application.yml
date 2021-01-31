@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: gateway-sample
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true  # 路由中的大小转为小写： 正常是 http://localhost:65000/FEIGN-CLIENT/sayHi  开启后 http://localhost:65000/feign-client/sayHi
+
+server:
+  port: 65000
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:20000/eureka/
+
+management:
+  endpoint:
+    env:
+      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: '*'
