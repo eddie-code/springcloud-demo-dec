@@ -224,3 +224,77 @@ public class GatewayConfiguration {
 	}
 }
 ```
+
+## 2-9 利用After断言实现简易的定时秒杀场景
+
+### After断言实现简易秒杀
+
+- 创建模拟下单接口
+- 通过After断言设置生效时间
+
+#### 创建网关样例控制层
+
+```java
+@Slf4j
+@RestController
+@RequestMapping("gateway")
+public class GatewayController {
+
+	private static final Map<Long, Product> items = new ConcurrentHashMap<>();
+
+	@ResponseBody
+	@RequestMapping(value = "details", method = RequestMethod.GET)
+	public Product get(@RequestParam("pid") Long pid) {
+		if (!items.containsKey(pid)) {
+			Product product = Product.builder()
+                    .productId(pid)
+                    .description("iphone 12 pro")
+                    .stock(100L)
+                    .build();
+			items.putIfAbsent(pid, product);
+		}
+		return items.get(pid);
+	}
+
+    @RequestMapping(value = "placeOrder", method = RequestMethod.POST)
+	public String buy(@RequestParam("pid") Long pid) {
+		Product product = items.get(pid);
+
+		if (product == null) {
+			return "产品没有找到!";
+		} else if (product.getStock() <= 0L) {
+			return "售罄";
+		}
+
+		synchronized (product) {
+			if (product.getStock() <= 0L) {
+				return "售罄";
+			}
+			product.setStock(product.getStock() - 1);
+		}
+		return "下单";
+	}
+
+}
+```
+
+com.example.springcloud.config.GatewayConfiguration <br> 追加route 
+```java
+.route(r -> r.path("/seckill/**")
+        .and().after(ZonedDateTime.now().plusMinutes(1)) // 系统加载后, 推迟一分钟在生效
+//						.and().before()
+//						.and().between()
+        .filters(f -> f.stripPrefix(1))
+        .uri("lb://FEIGN-CLIENT")
+)
+```
+
+#### 第一次测试是否成功
+
+- Feign直接调用
+    - 查库存 GET localhost:40002/gateway/details?pid=10086
+    - 下订单 POST localhost:40002/gateway/placeOrder?pid=10086
+- Gateway调用
+    - GET localhost:65000/seckill/gateway/details?pid=10086
+    - POST localhost:65000/seckill/gateway/placeOrder?pid=10086
+
