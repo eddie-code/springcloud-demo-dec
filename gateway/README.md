@@ -337,3 +337,12 @@ public class TimerFilter implements GatewayFilter, Ordered {
 ```
 
 > 全局 GlobalFilter 不需要在 @Autowired TimerFilter
+
+
+## 2-14 基于jwt实现用户鉴权-1
+
+### 实现JWT鉴权
+
+- 创建 auth-service (登录、鉴权等服务)
+- 添加 JwtService类 实现token创建和验证
+- 网关层集成 auth-service (添加 AuthFilter 到网关层)
