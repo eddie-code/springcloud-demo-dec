@@ -7,6 +7,13 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true  # 路由中的大小转为小写： 正常是 http://localhost:65000/FEIGN-CLIENT/sayHi  开启后 http://localhost:65000/feign-client/sayHi
+      routes:  # 断言配置
+        - id: feignclient
+          uri: lb://FEIGN-CLIENT
+          predicates:
+            - Path=/yml/**
+          filters:
+            - StripPrefix=1 # //localhost:9000/yml/sayHi 会切割前面的  //localhost:9000/sayHi
 
 server:
   port: 65000

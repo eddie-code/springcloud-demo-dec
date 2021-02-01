@@ -176,3 +176,51 @@ http://localhost:65000/actuator/gateway/routes
 
 DELETE http://localhost:65000/actuator/gateway/routes/dynamic <br> 
 根据后面 dynamic 来指定需要删除的路由名称
+
+
+## 2-8 利用Path断言实现URL映射
+
+### Path断言
+
+- 使用Path断言转发请求 (yaml配置 + java配置)
+- 配合使用Method断言
+
+#### yaml配置
+
+```yaml
+spring:
+  application:
+    name: gateway-sample
+  cloud:
+    gateway:
+      routes:  # 断言配置
+        - id: feignclient
+          uri: lb://FEIGN-CLIENT
+          predicates:
+            - Path=/yml/**
+          filters:
+            - StripPrefix=1 # //localhost:9000/yml/sayHi 会切割前面的  //localhost:9000/sayHi 
+```
+
+#### java配置
+
+```java
+@Configuration
+public class GatewayConfiguration {
+
+	@Bean
+	@Order
+	public RouteLocator getRouteLocator(RouteLocatorBuilder builder) {
+		return builder.routes().route(r -> r.path("/java/**")
+                .and().method(HttpMethod.GET)
+                .and().header("name")            // header 要带 name
+                .filters(f -> f.stripPrefix(1)
+//						.rewritePath("/java/(?<segment>.*)", "/${segment}")  // 重写跳转规则
+                        .addResponseHeader("java-param","gateway-config") // 添加到返回的 header 头
+                )
+                .uri("lb://FEIGN-CLIENT")
+//				.uri("http://www.baidu.com")
+        ).build();
+	}
+}
+```
