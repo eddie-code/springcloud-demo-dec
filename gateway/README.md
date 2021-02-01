@@ -298,3 +298,42 @@ com.example.springcloud.config.GatewayConfiguration <br> 追加route
     - GET localhost:65000/seckill/gateway/details?pid=10086
     - POST localhost:65000/seckill/gateway/placeOrder?pid=10086
 
+
+## 2-11 自定义过滤器实现接口计时功能
+
+### 自定义过滤器
+
+- 创建 TimerFilter 实现计时功能
+- 添加 TimerFilter 到路由
+
+#### TimerFilter
+
+```java
+@Slf4j
+@Component
+public class TimerFilter implements GatewayFilter, Ordered {
+//public class TimerFilter implements GlobalFilter, Ordered {  // GlobalFilter 全局过滤器
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        StopWatch watch = new StopWatch();
+        watch.start(exchange.getRequest().getURI().getRawPath());
+
+//        exchange.getAttributes().put("requestTimeBegain",System.currentTimeMillis());
+        exchange.getRequest().getHeaders();
+        return chain.filter(exchange).then(
+            Mono.fromRunnable(()->{
+                watch.stop();
+                log.info(watch.prettyPrint());
+            })  // 异步编程
+        );
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+}
+```
+
+> 全局 GlobalFilter 不需要在 @Autowired TimerFilter

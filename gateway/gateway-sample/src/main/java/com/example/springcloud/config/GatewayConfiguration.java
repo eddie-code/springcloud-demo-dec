@@ -1,5 +1,7 @@
 package com.example.springcloud.config;
 
+import com.example.springcloud.filter.TimerFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +24,9 @@ import java.time.ZonedDateTime;
 @Configuration
 public class GatewayConfiguration {
 
+	@Autowired
+	private TimerFilter timerFilter;
+
 	@Bean
 	@Order
 	public RouteLocator getRouteLocator(RouteLocatorBuilder builder) {
@@ -32,6 +37,7 @@ public class GatewayConfiguration {
 					.filters(f -> f.stripPrefix(1)
 	//						.rewritePath("/java/(?<segment>.*)", "/${segment}")  // 重写跳转规则
 							.addResponseHeader("java-param","gateway-config") // 添加到返回的 header 头
+							.filter(timerFilter)
                 )
                 .uri("lb://FEIGN-CLIENT")
 //				.uri("http://www.baidu.com")
