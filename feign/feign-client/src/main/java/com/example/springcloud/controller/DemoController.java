@@ -35,6 +35,11 @@ public class DemoController implements FeignService {
 		return "This is " + port;
 	}
 
+	@Override
+	public String sayHi2() {
+		return "Two This is " + port;
+	}
+
 	/**
 	 * post 请求
 	 *

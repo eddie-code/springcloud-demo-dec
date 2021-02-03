@@ -28,8 +28,8 @@ public interface AuthService {
      */
 	@PostMapping("/login")
 	@ResponseBody
-	AuthResponse login(@RequestParam("username") String username,
-                       @RequestParam("password") String password);
+	public AuthResponse login(@RequestParam("username") String username,
+							  @RequestParam("password") String password);
 
     /**
      *  验证token
@@ -38,16 +38,16 @@ public interface AuthService {
      * @return AuthResponse
      */
 	@GetMapping("/verify")
-	AuthResponse verify(@RequestParam("token") String token,
-                        @RequestParam("username") String username);
+	public AuthResponse verify(@RequestParam("token") String token,
+							   @RequestParam("username") String username);
 
     /**
      * 刷新token
-     * @param token str
+     * @param refresh str
      * @return AuthResponse
      */
 	@PostMapping("/refresh")
-    @ResponseBody
-	AuthResponse refresh(@RequestParam("refresh") String token);
+	@ResponseBody
+	public AuthResponse refresh(@RequestParam("refresh") String refresh);
 
 }

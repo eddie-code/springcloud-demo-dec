@@ -346,3 +346,33 @@ public class TimerFilter implements GatewayFilter, Ordered {
 - 创建 auth-service (登录、鉴权等服务)
 - 添加 JwtService类 实现token创建和验证
 - 网关层集成 auth-service (添加 AuthFilter 到网关层)
+
+## 2-15 基于jwt实现用户鉴权-2
+
+### 请求测试
+
+基于 auth-service 服务请求
+
+- 生成Token
+    - POST http://localhost:65100/login
+    - Body -> x-www-form-unlencoded -> username=me / password=123456
+- 校验Token
+    - GET http://localhost:65100/verify?username=${生成token时候的用户名}&token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJlZGRpZSIsImV4cCI6MTYxMjE5MDY3MSwiaWF0IjoxNjEyMTkwNjExLCJ1c2VybmFtZSI6Im1lIn0.oDWI17FUGhNKZpQOhFHR2UqG2XgecfpySVAxMiUz6oc
+- 刷新token
+    - POST http://localhost:65100/refresh
+    - Body -> x-www-form-unlencoded -> refreshToken=${生成token时候的refreshToken}
+
+基于 gateway-sample 服务请求
+
+- 拦截请求
+    - http://localhost:65000/java/sayHi
+    - Headers
+        - name:eddie
+      Authorization:eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJlZGRpZSIsImV4cCI6MTYxMjM0Mjc3NCwiaWF0IjoxNjEyMzQyNzE0LCJ1c2VybmFtZSI6Im1lIn0.RKtuUTcKBMBEzJM0GFZYbaSBuUc7VbiHrAIa8uqRqfI
+      jwt-user-name:me
+- 放行请求
+    - http://localhost:65000/java/sayHi2
+    - Headers
+        - name:eddie
+        
+> TIPS： 必需添加 Headers:name=${value}, 不然会报404. 除非 route 不指定添加头部信息 

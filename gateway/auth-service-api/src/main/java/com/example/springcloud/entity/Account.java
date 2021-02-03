@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /**
  * @author eddie.lee
  * @ProjectName springcloud-demo-dec
@@ -19,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Account {
+public class Account implements Serializable {
 
     private String username;
 

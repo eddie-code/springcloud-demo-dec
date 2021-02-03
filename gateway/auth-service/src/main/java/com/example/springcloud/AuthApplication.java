@@ -15,8 +15,8 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
  * @date created in 2021-02-01 17:10
  * @modified by
  */
-@EnableEurekaClient
 @SpringBootApplication
+@EnableEurekaClient
 public class AuthApplication {
 
     public static void main(String[] args) {
@@ -24,5 +24,4 @@ public class AuthApplication {
                 .web(WebApplicationType.SERVLET)
                 .run(args);
     }
-
 }

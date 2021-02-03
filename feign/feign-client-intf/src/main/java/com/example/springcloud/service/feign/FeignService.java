@@ -29,6 +29,14 @@ public interface FeignService {
 	String sayHi();
 
 	/**
+	 * 请求 eureka-client/sayHi2
+	 *
+	 * @return str
+	 */
+	@GetMapping("/sayHi2")
+	String sayHi2();
+
+	/**
 	 * post 请求
 	 * 
 	 * @param friend

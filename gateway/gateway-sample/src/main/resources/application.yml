@@ -8,6 +8,13 @@ spring:
           enabled: true
           lower-case-service-id: true  # 路由中的大小转为小写： 正常是 http://localhost:65000/FEIGN-CLIENT/sayHi  开启后 http://localhost:65000/feign-client/sayHi
       routes:  # 断言配置
+        - id: qq
+          uri: https://www.qq.com
+          predicates:
+            - Path=/qq/**
+          filters:
+            - StripPrefix=1
+
         - id: feignclient
           uri: lb://FEIGN-CLIENT
           predicates:
@@ -26,10 +33,15 @@ eureka:
 management:
   endpoint:
     env:
-      enabled: true
+      enabled: false
     health:
       show-details: always
   endpoints:
     web:
       exposure:
         include: '*'
+
+ignore:
+  jwt:
+    skip-auth-urls:
+      - /sayHi2

@@ -1,0 +1,34 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:20000/eureka/
+
+info:
+  app:
+    description: test
+    name: auth-service
+
+logging:
+  file: ${spring.application.name}.log
+
+management:
+  endpoint:
+    env:
+      enabled: false
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+server:
+  port: 65100
+
+spring:
+  application:
+    name: auth-service
+  redis:
+    database: 5
+    host: 192.168.8.100
+    port: 6379

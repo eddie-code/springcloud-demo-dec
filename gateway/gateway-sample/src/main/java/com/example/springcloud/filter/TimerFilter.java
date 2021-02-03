@@ -27,16 +27,15 @@ public class TimerFilter implements GatewayFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        StopWatch watch = new StopWatch();
-        watch.start(exchange.getRequest().getURI().getRawPath());
+        StopWatch timer = new StopWatch();
+        timer.start(exchange.getRequest().getURI().getRawPath());
 
-//        exchange.getAttributes().put("requestTimeBegain",System.currentTimeMillis());
-        exchange.getRequest().getHeaders();
+//        exchange.getAttributes().put("requestTimeBegain", System.currentTimeMillis());
         return chain.filter(exchange).then(
-            Mono.fromRunnable(()->{
-                watch.stop();
-                log.info(watch.prettyPrint());
-            })  // 异步编程
+                Mono.fromRunnable(() -> {
+                    timer.stop();
+                    log.info(timer.prettyPrint());
+                })
         );
     }
 

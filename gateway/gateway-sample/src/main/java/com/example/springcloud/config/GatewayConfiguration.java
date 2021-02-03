@@ -1,5 +1,6 @@
 package com.example.springcloud.config;
 
+import com.example.springcloud.AuthFilter;
 import com.example.springcloud.filter.TimerFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -27,29 +28,32 @@ public class GatewayConfiguration {
 	@Autowired
 	private TimerFilter timerFilter;
 
+	@Autowired
+	private AuthFilter authFilter;
+
 	@Bean
 	@Order
-	public RouteLocator getRouteLocator(RouteLocatorBuilder builder) {
+	public RouteLocator customizedRoutes(RouteLocatorBuilder builder) {
 		return builder.routes()
 				.route(r -> r.path("/java/**")
-					.and().method(HttpMethod.GET)
-					.and().header("name")            // header 要带 name
-					.filters(f -> f.stripPrefix(1)
-	//						.rewritePath("/java/(?<segment>.*)", "/${segment}")  // 重写跳转规则
-							.addResponseHeader("java-param","gateway-config") // 添加到返回的 header 头
-							.filter(timerFilter)
-                )
-                .uri("lb://FEIGN-CLIENT")
-//				.uri("http://www.baidu.com")
-        		)
-				.route(r -> r.path("/seckill/**")
-						.and().after(ZonedDateTime.now().plusMinutes(1)) // 系统加载后, 推迟一分钟在生效
-//						.and().before()
-//						.and().between()
-						.filters(f -> f.stripPrefix(1))
+						.and().method(HttpMethod.GET)
+						.and().header("name")
+						.filters(f -> f.stripPrefix(1)
+								.addResponseHeader("java-param", "gateway-config")
+								.filter(timerFilter)
+								.filter(authFilter)
+						)
 						.uri("lb://FEIGN-CLIENT")
 				)
+				.route(r -> r.path("/seckill/**")
+								.and().after(ZonedDateTime.now().plusMinutes(1))
+//                        .and().before()
+//                        .and().between()
+								.filters(f -> f.stripPrefix(1))
+								.uri("lb://FEIGN-CLIENT")
+				)
 				.build();
+
 	}
 
 }

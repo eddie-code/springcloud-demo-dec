@@ -10,9 +10,9 @@ package com.example.springcloud.entity;
  * @date created in 2021-02-01 16:16
  * @modified by
  */
-public class ErrorCode {
+public class AuthResponseCode {
 
-	private static final Long SUCCESS = 1L;
+	public static final Long SUCCESS = 1L;
 
 	public static final Long INCORRECT_PWD = 1000L;
 

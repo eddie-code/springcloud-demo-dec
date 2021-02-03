@@ -23,6 +23,6 @@ public class AuthResponse {
 
     private Account account;
 
-    private Long cede;
+    private Long code;
 
 }
