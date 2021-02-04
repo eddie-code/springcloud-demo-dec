@@ -11,3 +11,10 @@ eureka:
   instance:
     lease-renewal-interval-in-seconds: 5 # 每隔5秒钟, 向服务中心发送一条续约指令
     lease-expiration-duration-in-seconds: 30 # 如果30秒内, 依然没有收到续约请求, 判断服务过期
+
+feign:
+  client:
+    config:
+      # 全局配置
+      default:
+        loggerLevel: full

@@ -7,6 +7,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -29,8 +30,6 @@ import java.util.Objects;
 @Slf4j
 public class ErrorFilter implements GatewayFilter, Ordered {
 
-    private static final Integer ERROR_CODE = 500;
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         final ServerHttpRequest request = exchange.getRequest();
@@ -45,7 +44,16 @@ public class ErrorFilter implements GatewayFilter, Ordered {
                     log.info("original content {}", content);
 
                     // 如果500错误，则替换
-                    if (Objects.requireNonNull(resp.getStatusCode()).value() == ERROR_CODE) {
+                    if (Objects.requireNonNull(resp.getStatusCode()).value() == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
+                        log.error("系统异常");
+                        content = String.format("{\"status\":%d,\"path\":\"%s\"}",
+                                resp.getStatusCode().value(),
+                                request.getPath().value());
+                    }
+
+                    // 如果403错误，则替换
+                    if (Objects.requireNonNull(resp.getStatusCode()).value() == HttpStatus.FORBIDDEN.value()) {
+                        log.error("鉴权失败");
                         content = String.format("{\"status\":%d,\"path\":\"%s\"}",
                                 resp.getStatusCode().value(),
                                 request.getPath().value());

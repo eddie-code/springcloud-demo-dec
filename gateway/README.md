@@ -459,7 +459,7 @@ public class AuthFilter implements GatewayFilter, Ordered {
 - 引发错误： AuthFilter 存放在 com.example.springcloud.filter 下
 - 修复问题： 使用 restTemplate 请求方式
 
-## 2.16 通过Gateway层对Service层各类异常做统一处理
+## 2-16 通过Gateway层对Service层各类异常做统一处理
 
 现有的网关层异常格式：
 
@@ -617,6 +617,185 @@ jwt-user-name:me
 ```
 
 1/0 状态码=500, 返回 { "status": 500, "path": "/java/valid" }
+
+## 2-17 网关层的其他妙用 -- 限流
+
+### 针对某个请求路径限流
+
+创建一个限流配置类 RedisLimiterConfiguration
+com.example.springcloud.config.RedisLimiterConfiguration
+```java
+@Configuration
+public class RedisLimiterConfiguration {
+
+    /**
+     * 按照Path限流
+     */
+    @Bean("pathKeyResolver")
+    public KeyResolver pathKeyResolver() {
+        return exchange -> Mono.just(
+                exchange.getRequest()
+                        .getPath()
+                        .toString()
+        );
+    }
+
+    /**
+     * 实现针对用户的限流
+     */
+    @Bean("userKeyResolver")
+    public KeyResolver userKeyResolver() {
+        return exchange -> Mono.just(
+                Objects.requireNonNull(
+                        exchange.getRequest()
+                                .getQueryParams()
+                                .getFirst("user")));
+    }
+
+    /**
+     * 针对来源IP的限流
+     */
+    @Bean("ipKeyResolver")
+    public KeyResolver ipKeyResolver() {
+        return exchange -> Mono.just(
+                Objects.requireNonNull(
+                        exchange.getRequest()
+                                .getHeaders()
+                                .getFirst("X-Forwarded-For"))
+        );
+    }
+
+	/**
+	 * ID: KEY 限流的业务标识
+     * 我们这里根据用户请求IP地址进行限流
+	 */
+    @Bean("remoteAddressKeyResolver")
+    @Primary //优先选择
+    public KeyResolver remoteAddressKeyResolver(){
+        return exchange -> Mono.just(
+                exchange.getRequest()
+                        .getRemoteAddress()
+                        .getAddress()
+                        .getHostAddress()
+        );
+    }
+
+    @Bean("redisLimiterUser")
+    @Primary //优先选择
+    public RedisRateLimiter redisRateLimiterUser(){
+        //这里可以自己创建一个限流脚本,也可以使用默认的令牌桶
+        //defaultReplenishRate:限流桶速率,每秒10个
+        //defaultBurstCapacity:桶的容量
+        return new RedisRateLimiter(1,2);
+    }
+
+    @Bean("redisLimiterProduct")
+    public RedisRateLimiter redisRateLimiterProduct(){
+        //这里可以自己创建一个限流脚本,也可以使用默认的令牌桶
+        //defaultReplenishRate:限流桶速率,每秒10个
+        //defaultBurstCapacity:桶的容量
+        return new RedisRateLimiter(1,2);
+    }
+}
+```
+
+redis依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+</dependency>
+```
+
+application.yaml 中的redis信息
+
+```yaml
+spring:
+  application:
+    name: gateway-sample
+  main:
+    allow-bean-definition-overriding: true
+  redis:
+    database: 5
+    host: 192.168.8.100
+    port: 6379
+```
+
+在GatewayConfiguration中进行配置加入RedisLimiter的配置
+com.example.springcloud.config.GatewayConfiguration
+```java
+@Configuration
+public class GatewayConfiguration {
+
+//	@Autowired
+//	private TimerFilter timerFilter;
+
+	@Autowired
+	private AuthFilter authFilter;
+
+	@Autowired
+	private ErrorFilter errorFilter;
+
+	@Autowired
+	private KeyResolver hostNameResolver;
+
+	@Autowired
+	@Qualifier("redisLimiterUser")
+	private RateLimiter rateLimiterUser;
+
+	@Bean
+	@Order
+	public RouteLocator customizedRoutes(RouteLocatorBuilder builder) {
+		LocalDateTime ldt1 = LocalDateTime.of(2021,2,4,10,30,30);
+		LocalDateTime ldt2 = LocalDateTime.of(2021,3,4,10,30,30);
+		return builder.routes()
+				.route(r -> r.path("/java/**")
+						.and().method(HttpMethod.GET)
+						.and().header("name")
+						.filters(f -> f.stripPrefix(1)
+								.addResponseHeader("java-param", "gateway-config")
+//								.filter(timerFilter)
+								.filter(authFilter)
+								.filter(errorFilter)
+								.requestRateLimiter(  // 限流配置
+										c -> {
+											c.setKeyResolver(hostNameResolver);
+											c.setRateLimiter(rateLimiterUser);
+										})
+						)
+						.uri("lb://FEIGN-CLIENT")
+				)
+				.route(r -> r.path("/seckill/**")
+//								.and().after(ZonedDateTime.now().plusMinutes(1))
+								.and().between(ZonedDateTime.of(ldt1, ZoneId.of("Asia/Shanghai")),ZonedDateTime.of(ldt2, ZoneId.of("Asia/Shanghai")))
+								.filters(f -> f.stripPrefix(1))
+								.uri("lb://FEIGN-CLIENT")
+				)
+				.build();
+
+	}
+
+}
+```
+
+> 连续发起 http://localhost:65000/java/sayHi 请求, 返回429状态码 就是已经达到限流的阀值
+
+### 全局限流 - yaml配置
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters: # 全局限流
+        - name: RequestRateLimiter
+          args:
+            # key-resolver：这里注入的就是在上一步中我们定义的Key Resolver，它使用SpEL表达式从Spring上下文中获取指定Bean  【这个必须要配置，否则返回403】
+            key-resolver: '#{@remoteAddressKeyResolver}'
+            redis-rate-limiter.replenishRate: 10   # 令牌桶每秒的平均填充速度
+            redis-rate-limiter.burstCapacity: 20   # 令牌桶总量
+            redis-rate-limiter.requestedTokens: 1  # 每个请求消耗多少个令牌，默认是1.
+```
+
 
 <br>
 

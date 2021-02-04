@@ -4,6 +4,9 @@ import com.example.springcloud.filter.AuthFilter;
 import com.example.springcloud.filter.ErrorFilter;
 import com.example.springcloud.filter.TimerFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
+import org.springframework.cloud.gateway.filter.ratelimit.RateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -28,14 +31,21 @@ import java.time.ZonedDateTime;
 @Configuration
 public class GatewayConfiguration {
 
-	@Autowired
-	private TimerFilter timerFilter;
+//	@Autowired
+//	private TimerFilter timerFilter;
 
 	@Autowired
 	private AuthFilter authFilter;
 
 	@Autowired
 	private ErrorFilter errorFilter;
+
+	@Autowired
+	private KeyResolver hostNameResolver;
+
+	@Autowired
+	@Qualifier("redisLimiterUser")
+	private RateLimiter rateLimiterUser;
 
 	@Bean
 	@Order
@@ -48,9 +58,14 @@ public class GatewayConfiguration {
 						.and().header("name")
 						.filters(f -> f.stripPrefix(1)
 								.addResponseHeader("java-param", "gateway-config")
-								.filter(timerFilter)
+//								.filter(timerFilter)
 								.filter(authFilter)
 								.filter(errorFilter)
+								.requestRateLimiter(  // 限流配置
+										c -> {
+											c.setKeyResolver(hostNameResolver);
+											c.setRateLimiter(rateLimiterUser);
+										})
 						)
 						.uri("lb://FEIGN-CLIENT")
 				)

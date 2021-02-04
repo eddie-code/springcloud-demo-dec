@@ -1,6 +1,12 @@
 spring:
   application:
     name: gateway-sample
+  main:
+    allow-bean-definition-overriding: true
+  redis:
+    database: 5
+    host: 192.168.8.100
+    port: 6379
   cloud:
     gateway:
       discovery:
@@ -21,6 +27,14 @@ spring:
             - Path=/yml/**
           filters:
             - StripPrefix=1 # //localhost:9000/yml/sayHi 会切割前面的  //localhost:9000/sayHi
+      default-filters: # 全局限流
+        - name: RequestRateLimiter
+          args:
+            # key-resolver：这里注入的就是在上一步中我们定义的Key Resolver，它使用SpEL表达式从Spring上下文中获取指定Bean  【这个必须要配置，否则返回403】
+            key-resolver: '#{@remoteAddressKeyResolver}'
+            redis-rate-limiter.replenishRate: 10   # 令牌桶每秒的平均填充速度
+            redis-rate-limiter.burstCapacity: 20   # 令牌桶总量
+            redis-rate-limiter.requestedTokens: 1  # 每个请求消耗多少个令牌，默认是1.
 
 server:
   port: 65000
@@ -40,6 +54,13 @@ management:
     web:
       exposure:
         include: '*'
+
+feign:
+  client:
+    config:
+      # 全局配置
+      default:
+        loggerLevel: full
 
 ignore:
   jwt:
