@@ -796,7 +796,6 @@ spring:
             redis-rate-limiter.requestedTokens: 1  # 每个请求消耗多少个令牌，默认是1.
 ```
 
-
 <br>
 
 [GitHub](https://github.com/eddie-code) <br>

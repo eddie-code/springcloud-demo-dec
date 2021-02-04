@@ -9,6 +9,8 @@ import com.example.springcloud.model.Friend;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDate;
+
 /**
  * @author eddie.lee
  * @ProjectName springcloud-demo-dec
@@ -33,16 +35,19 @@ public class DemoController implements FeignService {
 	 */
 	@Override
 	public String sayHi() {
+		System.out.println("sayHi " + LocalDate.now());
 		return "This is " + port;
 	}
 
 	@Override
 	public String sayHi2() {
+		System.out.println("sayHi2 " + LocalDate.now());
 		return "Two This is " + port;
 	}
 
 	@Override
 	public String valid(){
+		System.out.println("valid " + LocalDate.now());
 		int i = 1/0;
 		return "Error Test Success" + port;
 	}
