@@ -347,6 +347,79 @@ public class TimerFilter implements GatewayFilter, Ordered {
 - 添加 JwtService类 实现token创建和验证
 - 网关层集成 auth-service (添加 AuthFilter 到网关层)
 
+```java
+package com.example.springcloud
+
+@Data
+@Slf4j
+@Component("authFilter")
+@ConfigurationProperties("ignore.jwt")
+public class AuthFilter implements GatewayFilter, Ordered {
+
+    private static final String AUTH = "Authorization";
+
+    private static final String USERNAME = "jwt-user-name";
+
+    private String[] skipAuthUrls;
+
+    @Autowired
+    private AuthService authService;
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        log.info("Auth start");
+
+        String url = exchange.getRequest().getURI().getPath();
+        System.out.println(url);
+
+		if (null != skipAuthUrls && Arrays.asList(skipAuthUrls).contains(url)) {
+			log.info("ignore jwt auth");
+			return chain.filter(exchange);
+		}
+
+        ServerHttpRequest request = exchange.getRequest();
+        HttpHeaders header = request.getHeaders();
+        String token = header.getFirst(AUTH);
+        String username = header.getFirst(USERNAME);
+
+        ServerHttpResponse response = exchange.getResponse();
+        if (StringUtils.isBlank(token)) {
+            log.error("token not found");
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            return response.setComplete();
+        }
+
+        AuthResponse resp = authService.verify(token, username);
+
+        assert resp != null;
+        if (resp.getCode() != 1L) {
+            log.error("invalid token");
+            response.setStatusCode(HttpStatus.FORBIDDEN);
+            return response.setComplete();
+        }
+
+        // TODO 将用户信息存放在请求header中传递给下游业务
+        ServerHttpRequest.Builder mutate = request.mutate();
+        assert username != null;
+        mutate.header("jwt-user-name", username);
+        ServerHttpRequest buildReuqest = mutate.build();
+
+        //todo 如果响应中需要放数据，也可以放在response的header中
+        response.setStatusCode(HttpStatus.OK);
+        response.getHeaders().add("jwt-username",username);
+        return chain.filter(exchange.mutate()
+                .request(buildReuqest)
+                .response(response)
+                .build());
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+}
+```
+
 ## 2-15 基于jwt实现用户鉴权-2
 
 ### 请求测试
@@ -376,3 +449,9 @@ public class TimerFilter implements GatewayFilter, Ordered {
         - name:eddie
         
 > TIPS： 必需添加 Headers:name=${value}, 不然会报404. 除非 route 不指定添加头部信息 
+
+#### 修复 AuthFilter 包路径抛出空指针问题
+
+- 错误提示： 空指针
+- 引发错误： AuthFilter 存放在 com.example.springcloud.filter 下
+- 修复问题： 使用 restTemplate 请求方式
