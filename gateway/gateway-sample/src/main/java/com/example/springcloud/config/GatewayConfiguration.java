@@ -1,6 +1,6 @@
 package com.example.springcloud.config;
 
-import com.example.springcloud.AuthFilter;
+import com.example.springcloud.filter.AuthFilter;
 import com.example.springcloud.filter.TimerFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 /**
@@ -34,6 +36,8 @@ public class GatewayConfiguration {
 	@Bean
 	@Order
 	public RouteLocator customizedRoutes(RouteLocatorBuilder builder) {
+		LocalDateTime ldt1 = LocalDateTime.of(2021,2,4,10,30,30);
+		LocalDateTime ldt2 = LocalDateTime.of(2021,3,4,10,30,30);
 		return builder.routes()
 				.route(r -> r.path("/java/**")
 						.and().method(HttpMethod.GET)
@@ -46,9 +50,8 @@ public class GatewayConfiguration {
 						.uri("lb://FEIGN-CLIENT")
 				)
 				.route(r -> r.path("/seckill/**")
-								.and().after(ZonedDateTime.now().plusMinutes(1))
-//                        .and().before()
-//                        .and().between()
+//								.and().after(ZonedDateTime.now().plusMinutes(1))
+								.and().between(ZonedDateTime.of(ldt1, ZoneId.of("Asia/Shanghai")),ZonedDateTime.of(ldt2, ZoneId.of("Asia/Shanghai")))
 								.filters(f -> f.stripPrefix(1))
 								.uri("lb://FEIGN-CLIENT")
 				)

@@ -43,12 +43,12 @@ public class JwtService {
         Algorithm algorithm = Algorithm.HMAC256(KEY);
 
         String token = JWT.create()
-                .withIssuer(ISSUER) // 发行者, 这个在生产环境也是需要加密的
-                .withIssuedAt(now) // 当前时间
+                .withIssuer(ISSUER) // 发行方,解密的时候依然要验证,即便拿到了key不知道发行方也无法解密
+                .withIssuedAt(now) // 这个key是在什么时间点生成的
                 .withExpiresAt(new Date(now.getTime() + TOKEN_EXP_TIME))// 过期时间
-                .withClaim(USER_NAME, account.getUsername())
-//                .withClaim("ROLE","") // 企业级别应用基本都会传入 ROLE 权限
-                .sign(algorithm);
+                .withClaim(USER_NAME, account.getUsername()) // 传入username
+//                .withClaim("ROLE","roleName") // 企业级别应用基本都会传入 ROLE 权限
+                .sign(algorithm); // 用前面的算法签发
 
 		log.info("jwt generated user={}, token={}", account.getUsername(), token);
 		return token;
@@ -64,12 +64,15 @@ public class JwtService {
         log.info("verifying jwt - username={}", username);
 
         try {
+            // 加密和解密要一样
             Algorithm algorithm = Algorithm.HMAC256(KEY);
+            // 构建一个验证器:验证JWT的内容,是个接口
             JWTVerifier verifier = JWT.require(algorithm)
+                    // 前面加密的内容都可以验证
                     .withIssuer(ISSUER)
                     .withClaim(USER_NAME, username)
                     .build();
-
+            // 这里有任何错误就直接异常了
             verifier.verify(token);
             return true;
         } catch (Exception e) {

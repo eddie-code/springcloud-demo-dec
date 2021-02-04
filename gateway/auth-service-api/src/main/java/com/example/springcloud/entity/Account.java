@@ -23,10 +23,13 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class Account implements Serializable {
 
-    private String username;
+	private String username;
 
-    private String token;
+	private String token;
 
-    private String refreshToken;
+	/**
+	 * 当token接近失效的时候可以用refreshToken生成一个新的token
+	 */
+	private String refreshToken;
 
 }

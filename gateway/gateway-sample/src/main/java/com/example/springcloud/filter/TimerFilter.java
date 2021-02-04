@@ -22,25 +22,26 @@ import reactor.core.publisher.Mono;
  */
 @Slf4j
 @Component
-public class TimerFilter implements GatewayFilter, Ordered {
-//public class TimerFilter implements GlobalFilter, Ordered {  // GlobalFilter 全局过滤器
+public class TimerFilter implements GatewayFilter, Ordered { //Ordered是指定执行顺序的接口
+// public class TimerFilter implements GlobalFilter, Ordered { // GlobalFilter 全局过滤器
 
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        StopWatch timer = new StopWatch();
-        timer.start(exchange.getRequest().getURI().getRawPath());
+	@Override
+	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+		// 这里就是执行完过滤进行调用的地方
+		StopWatch timer = new StopWatch();
+		// 开始计时
+		timer.start(exchange.getRequest().getURI().getRawPath());
+		// 我们还可以对调用链进行加工,手工放入请求参数
+		exchange.getAttributes().put("requestTimeBegin", System.currentTimeMillis());
+		return chain.filter(exchange).then(Mono.fromRunnable(() -> {
+			// 这里就是执行完过滤进行调用的地方
+			timer.stop();
+			log.info(timer.prettyPrint());
+		}));
+	}
 
-//        exchange.getAttributes().put("requestTimeBegain", System.currentTimeMillis());
-        return chain.filter(exchange).then(
-                Mono.fromRunnable(() -> {
-                    timer.stop();
-                    log.info(timer.prettyPrint());
-                })
-        );
-    }
-
-    @Override
-    public int getOrder() {
-        return 0;
-    }
+	@Override
+	public int getOrder() {
+		return 0;
+	}
 }

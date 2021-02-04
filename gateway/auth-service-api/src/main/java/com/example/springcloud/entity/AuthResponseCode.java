@@ -18,4 +18,6 @@ public class AuthResponseCode {
 
 	public static final Long USER_NOT_FOUND = 1001L;
 
+	public static final Long INVALID_TOKEN = 1002L;
+
 }

@@ -1,4 +1,4 @@
-package com.example.springcloud;
+package com.example.springcloud.filter;
 
 import com.example.springcloud.entity.AuthResponse;
 import com.example.springcloud.service.AuthService;
@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -35,8 +36,11 @@ public class AuthFilter implements GatewayFilter, Ordered {
 
     private String[] skipAuthUrls;
 
+//    @Autowired
+//    private AuthService authService;
+
     @Autowired
-    private AuthService authService;
+    private RestTemplate restTemplate;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -62,7 +66,16 @@ public class AuthFilter implements GatewayFilter, Ordered {
             return response.setComplete();
         }
 
-        AuthResponse resp = authService.verify(token, username);
+//        AuthResponse resp = authService.verify(token, username);
+
+        String path = String.format(
+                "http://auth-service/verify?token=%s&username=%s",
+                token,
+                username
+        );
+        AuthResponse resp = restTemplate.getForObject(path,AuthResponse.class);
+
+        assert resp != null;
         if (resp.getCode() != 1L) {
             log.error("invalid token");
             response.setStatusCode(HttpStatus.FORBIDDEN);

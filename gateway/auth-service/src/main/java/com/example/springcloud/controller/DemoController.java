@@ -47,13 +47,16 @@ public class DemoController {
                 .build();
 
         // TODO 验证username + password, 正常会需要加盐, 查询数据库是否存在该用户之类的
+        // 1-生成token
         String token = jwtService.token(account);
         account.setToken(token);
+        // 这里保存拿到新token的key
         account.setRefreshToken(UUID.randomUUID().toString());
 
         // 保存token, 用于刷新token, 单机节点可以声明一个Map
         redisTemplate.opsForValue().set(account.getRefreshToken(), account);
 
+        // 2-返回token
         return AuthResponse.builder()
                 .account(account)
                 .code(AuthResponseCode.SUCCESS)
@@ -68,6 +71,7 @@ public class DemoController {
     @PostMapping("/refresh")
     @ResponseBody
     public AuthResponse refresh(@RequestParam String refreshToken) {
+        // 当使用redisTemplate保存对象时,对象必须是一个可被序列化的对象
         Account account = (Account) redisTemplate.opsForValue().get(refreshToken);
         if (account == null) {
             return AuthResponse.builder()
@@ -77,9 +81,11 @@ public class DemoController {
 
         String jwt = jwtService.token(account);
         account.setToken(jwt);
+        // 更新新的refreshToke
         account.setRefreshToken(UUID.randomUUID().toString());
-
+        // 将原来的删除
         redisTemplate.delete(refreshToken);
+        // 添加新的token
         redisTemplate.opsForValue().set(account.getRefreshToken(), account);
 
         return AuthResponse.builder()
@@ -96,7 +102,7 @@ public class DemoController {
 
         return AuthResponse.builder()
                 // TODO 此处最好用invalid token之类的错误信息
-                .code(success ? AuthResponseCode.SUCCESS : AuthResponseCode.USER_NOT_FOUND)
+                .code(success ? AuthResponseCode.SUCCESS : AuthResponseCode.INVALID_TOKEN)
                 .build();
     }
 
