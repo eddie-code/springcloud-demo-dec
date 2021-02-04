@@ -426,6 +426,7 @@ public class AuthFilter implements GatewayFilter, Ordered {
 
 基于 auth-service 服务请求
 
+```xml
 - 生成Token
     - POST http://localhost:65100/login
     - Body -> x-www-form-unlencoded -> username=me / password=123456
@@ -434,9 +435,10 @@ public class AuthFilter implements GatewayFilter, Ordered {
 - 刷新token
     - POST http://localhost:65100/refresh
     - Body -> x-www-form-unlencoded -> refreshToken=${生成token时候的refreshToken}
+```
 
 基于 gateway-sample 服务请求
-
+```xml
 - 拦截请求
     - http://localhost:65000/java/sayHi
     - Headers
@@ -447,7 +449,8 @@ public class AuthFilter implements GatewayFilter, Ordered {
     - http://localhost:65000/java/sayHi2
     - Headers
         - name:eddie
-        
+```
+
 > TIPS： 必需添加 Headers:name=${value}, 不然会报404. 除非 route 不指定添加头部信息 
 
 #### 修复 AuthFilter 包路径抛出空指针问题
@@ -455,3 +458,166 @@ public class AuthFilter implements GatewayFilter, Ordered {
 - 错误提示： 空指针
 - 引发错误： AuthFilter 存放在 com.example.springcloud.filter 下
 - 修复问题： 使用 restTemplate 请求方式
+
+## 2.16 通过Gateway层对Service层各类异常做统一处理
+
+现有的网关层异常格式：
+
+```json
+{
+    "timestamp": "2021-02-04T03:04:58.501+0000",
+    "path": "/java/sayHi2",
+    "status": 404,
+    "error": "Not Found",
+    "message": null
+}
+```
+
+通过 装饰器编程模式+代理模式，给Gateway加一层特效，改变ResponseBody中的数据结构，顺带也体验一下如何将编程模式运用到实际需求中
+
+### 代理模式 - BodyHackerFunction接口
+
+```java
+package com.example.springcloud.tools;
+
+import org.reactivestreams.Publisher;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import reactor.core.publisher.Mono;
+
+import java.util.function.BiFunction;
+
+public interface BodyHackerFunction extends BiFunction<ServerHttpResponse, Publisher<? extends DataBuffer>, Mono<Void>> {
+}
+```
+
+这里引入代理模式是为了将装饰器和具体业务代理逻辑拆分开来，在装饰器中只需要依赖一个代理接口，而不需要和具体的代理逻辑绑定起来
+
+### 装饰器模式 - BodyHackerDecrator
+
+接下来我们定义一个装饰器类，这个装饰器继承自ServerHttpResponseDecorator类，我们这里就用装饰器模式给Response Body的构造过程加上一层特效
+
+```java
+package com.example.springcloud.tools;
+
+import org.reactivestreams.Publisher;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
+import reactor.core.publisher.Mono;
+
+public class BodyHackerHttpResponseDecorator extends ServerHttpResponseDecorator {
+
+    /**
+     * 负责具体写入Body内容的代理类
+     */
+    private BodyHackerFunction delegate = null;
+
+    public BodyHackerHttpResponseDecorator(BodyHackerFunction bodyHandler, ServerHttpResponse delegate) {
+        super(delegate);
+        this.delegate = bodyHandler;
+    }
+
+    @Override
+    public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+        return delegate.apply(getDelegate(), body);
+    }
+}
+```
+
+这个装饰器的构造方法接收一个BodyHancker代理类，其中的关键方法writeWith就是用来向Response Body中写入内容的。这里我们覆盖了该方法，使用代理类来托管方法的执行，而在整个装饰器类中看不到一点业务逻辑，这就是我们常说的单一职责。
+
+### 创建Filter
+
+```java
+package com.example.springcloud.filter;
+
+import com.example.springcloud.tools.BodyHackerFunction;
+import com.example.springcloud.tools.BodyHackerHttpResponseDecorator;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+@Component
+@Slf4j
+public class ErrorFilter implements GatewayFilter, Ordered {
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        final ServerHttpRequest request = exchange.getRequest();
+        // TODO 这里定义写入Body的逻辑
+        BodyHackerFunction delegate = (resp, body) -> Flux.from(body)
+                .flatMap(orgBody -> {
+                    // 原始的response body
+                    byte[] orgContent = new byte[orgBody.readableByteCount()];
+                    orgBody.read(orgContent);
+
+                    String content = new String(orgContent);
+                    log.info("original content {}", content);
+
+                    // 如果500错误，则替换
+                    if (resp.getStatusCode().value() == 500) {
+                        content = String.format("{\"status\":%d,\"path\":\"%s\"}",
+                                resp.getStatusCode().value(),
+                                request.getPath().value());
+                    }
+
+                    // 告知客户端Body的长度，如果不设置的话客户端会一直处于等待状态不结束
+                    HttpHeaders headers = resp.getHeaders();
+                    headers.setContentLength(content.length());
+                    return resp.writeWith(Flux.just(content)
+                            .map(bx -> resp.bufferFactory().wrap(bx.getBytes())));
+                }).then();
+
+        // 将装饰器当做Response返回
+        BodyHackerHttpResponseDecorator responseDecorator = new BodyHackerHttpResponseDecorator(delegate, exchange.getResponse());
+
+        return chain.filter(exchange.mutate().response(responseDecorator).build());
+    }
+
+    @Override
+    public int getOrder() {
+        // WRITE_RESPONSE_FILTER的执行顺序是-1，我们的Hacker在它之前执行
+        return -2;
+    }
+}
+```
+
+在这个Filter中，我们定义了一个装饰器类BodyHackerHttpResponseDecorator，同时声明了一个匿名内部类(代码TODO部分)，实现了BodyHackerFunction代理类的Body替换逻辑，并且将这个代理类传入了装饰器。这个装饰器将直接参与构造Response Body。
+
+我们还覆盖了getOrder方法，是为了确保我们的filter在默认的Response构造器之前执行
+
+我们对500的HTTP Status做了特殊定制，使用我们自己的JSON内容替换了原始内容，同学们可以根据需要向JSON中加入其它参数。对于其他非500 Status的Response来说，我们还是返回初始的Body。
+
+我们在feign-client的GatewayController中定一个500的错误方法进行测试
+
+```java
+@GetMapping("/valid")
+public String valid(){
+    int i = 1/0;
+    return "Error Test Success";
+}
+```
+ErrorFilter的注入方式同之前的过滤器一样
+
+请求测试
+```xml
+http://localhost:65000/java/valid
+
+name:eddie
+Authorization:eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJlZGRpZSIsImV4cCI6MTYxMjQwODkwNCwiaWF0IjoxNjEyNDA4ODQ0LCJ1c2VybmFtZSI6Im1lIn0.Y5xbAeuQ0QQd2iNbxD_3UptTeDCkdRKL5TC1qmh405g
+jwt-user-name:me
+```
+
+1/0 状态码=500, 返回 { "status": 500, "path": "/java/valid" }
+
+<br>
+
+[The complete sample project for this tutorial can be downloaded code.](https://github.com/eddie-code/springcloud-demo-dec/tree/develop/gateway)

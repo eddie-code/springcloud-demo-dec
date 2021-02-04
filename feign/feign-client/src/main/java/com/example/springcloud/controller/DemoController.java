@@ -2,6 +2,7 @@ package com.example.springcloud.controller;
 
 import com.example.springcloud.service.feign.FeignService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.springcloud.model.Friend;
@@ -38,6 +39,12 @@ public class DemoController implements FeignService {
 	@Override
 	public String sayHi2() {
 		return "Two This is " + port;
+	}
+
+	@Override
+	public String valid(){
+		int i = 1/0;
+		return "Error Test Success" + port;
 	}
 
 	/**

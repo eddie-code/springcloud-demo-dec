@@ -1,6 +1,7 @@
 package com.example.springcloud.config;
 
 import com.example.springcloud.filter.AuthFilter;
+import com.example.springcloud.filter.ErrorFilter;
 import com.example.springcloud.filter.TimerFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -33,6 +34,9 @@ public class GatewayConfiguration {
 	@Autowired
 	private AuthFilter authFilter;
 
+	@Autowired
+	private ErrorFilter errorFilter;
+
 	@Bean
 	@Order
 	public RouteLocator customizedRoutes(RouteLocatorBuilder builder) {
@@ -46,6 +50,7 @@ public class GatewayConfiguration {
 								.addResponseHeader("java-param", "gateway-config")
 								.filter(timerFilter)
 								.filter(authFilter)
+								.filter(errorFilter)
 						)
 						.uri("lb://FEIGN-CLIENT")
 				)
