@@ -799,4 +799,7 @@ spring:
 
 <br>
 
-[The complete sample project for this tutorial can be downloaded code.](https://github.com/eddie-code/springcloud-demo-dec/tree/develop/gateway)
+[GitHub](https://github.com/eddie-code) <br>
+[博客园](https://www.cnblogs.com/EddieBlog) <br>
+[CSDN](https://blog.csdn.net/eddielee9217) <br>
+[自建博客](https://blog.eddilee.cn/s/about) <br>
