@@ -28,6 +28,8 @@ server:
 spring:
   application:
     name: sleuth-traceB
+  zipkin:
+    base-url: http://localhost:62100 # Zipkin的地址
 
 ---
 # Sleuth采样率
