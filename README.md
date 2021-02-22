@@ -17,6 +17,8 @@ SpringBoot 2.1.5.RELEASE
 - [Bus - 消息总线](bus/README.md)
 - [Gateway - 服务网关](gateway/README.md)
 - [Sleuth - 追踪调用链路](sleuth/README.md)
+- [Sleuth - 追踪调用链路](sleuth/README.md)
+- [Zipkin - 链路追踪](zipkin/README.md)
 
 Created by [Eddie.Lee](http://blog.eddilee.cn/) <br>
 [Spring cloud Edgware.SR2](https://www.cnblogs.com/EddieBlog/category/1186546.html) and [code downloads](https://github.com/eddie-code/SpringCloudDemo) prior to 2018

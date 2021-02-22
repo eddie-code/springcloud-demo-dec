@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: zipkin-server
+  main:
+    allow-bean-definition-overriding: true
+server:
+  port: 62100
+management:
+  metrics:
+    web:
+      server:
+        auto-time-requests: false # 如若没有这个配置，访问WEB时，会抛出"There is already an existing meter named 'http_server_requests_seconds'"
