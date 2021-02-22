@@ -1,0 +1,37 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:20000/eureka/
+
+info:
+  app:
+    description: test
+    name: sleuth-traceB
+
+logging:
+  file: ${spring.application.name}.log
+
+management:
+  endpoint:
+    env:
+      enabled: false
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+server:
+  port: 62001
+
+spring:
+  application:
+    name: sleuth-traceB
+
+---
+# Sleuth采样率
+spring:
+  sleuth:
+    sampler:
+      probability: 1 # 1 = 100% 如若采样 50% 就是 0.5
