@@ -92,6 +92,71 @@ docker stop elk && docker rm elk
 docker run -p 5601:5601 -p 9200:9200 -p 5044:5044 -e ES_MIN_MEM=128m  -e ES_MAX_MEM=1024m -it --name elk sebp/elk
 ```
 
+## 1-12 Sleuth集成ELK实现日志检索-2
+
+### Sleuth集成ELK
+
+- 引入Logstash依赖到Sleuth项目中
+- 配置日志文件, 输出JSON格式到日志到Logstash
+
+sleuth-traceA 与 sleuth-traceB 添加依赖
+```xml
+<dependency>
+    <groupId>net.logstash.logback</groupId>
+    <artifactId>logstash-logback-encoder</artifactId>
+    <version>5.2</version>
+</dependency>
+```
+
+sleuth-traceA 与 sleuth-traceB 的 logback-spring.xml 添加 logstash 配置
+```xml
+<!-- Logstash -->
+<!-- 为logstash输出的JSON格式的Appender -->
+<appender name="logstash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+    <destination>192.168.8.246:5044</destination>
+    <!-- 日志输出编码 -->
+    <encoder
+            class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+            <timestamp>
+                <timeZone>UTC</timeZone>
+            </timestamp>
+            <pattern>
+                <pattern>
+                    {
+                    "severity": "%level",
+                    "service": "${springAppName:-}",
+                    "trace": "%X{X-B3-TraceId:-}",
+                    "span": "%X{X-B3-SpanId:-}",
+                    "exportable": "%X{X-Span-Export:-}",
+                    "pid": "${PID:-}",
+                    "thread": "%thread",
+                    "class": "%logger{40}",
+                    "rest": "%message"
+                    }
+                </pattern>
+            </pattern>
+        </providers>
+    </encoder>
+</appender>
+
+<!-- 日志输出级别 -->
+<root level="INFO">
+    <appender-ref ref="console" />
+    <appender-ref ref="logstash" />
+</root>
+```
+
+### 访问Kibana 
+http://localhost:5601/ <br>
+Discover --> 选择 '*'
+
+### 请求与查询
+1. 清空控制台
+1. 请求 http://localhost:62000/traceA
+1. 复制控制台的 traceId 到 Kibana页面上查询
+    1. 精准查询关键字和值："trace: 32deeb6a183f1e71"
+
 
 
 <br>
