@@ -153,6 +153,10 @@ Discover --> 选择 '*'
 
 ### 请求与查询
 1. 清空控制台
+1. 启动服务
+    1. EurekaServerApplication
+    1. SleuthTrace2Application
+    1. SleuthTrace1Application
 1. 请求 http://localhost:62000/traceA
 1. 复制控制台的 traceId 到 Kibana页面上查询
     1. 精准查询关键字和值："trace: 32deeb6a183f1e71"
