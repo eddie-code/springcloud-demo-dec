@@ -17,3 +17,5 @@
 	- Payload: 自定义内容
 	- 点击按钮 Publish message
 	- IDEA控制台就会提示:"message consumed successfully, payload=自定义内容"
+	
+[Docker部署RabbitMQ](https://blog.eddilee.cn/archives/docker%E9%83%A8%E7%BD%B2rabbitmq%E9%9B%86%E7%BE%A4)
