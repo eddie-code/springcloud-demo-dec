@@ -29,3 +29,14 @@ spring:
     port: 5672
     username: guest
     password: guest
+
+---
+# 绑定 Channel 到 broadcast
+spring:
+  cloud:
+    stream:
+      bindings:
+        myTopic-consumer:  # 消费者绑定
+          destination: broadcast
+        myTopic-producer:  # 生产者绑定
+          destination: broadcast
