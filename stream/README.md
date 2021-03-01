@@ -157,3 +157,125 @@ spring.cloud.stream.bindings.group-producer.group=Group-A
 
 消息分区有一个预定义的分区Key，它是一个SpEL表达式（想想前面哪一章节讲过SpEL？提示换一下，Key Resolver）。我们需要在配置文件中指定分区的总个数N，Stream就会为我们创建N个分区，这里面每个分区就是一个Queue（可以在RabbitMQ管理界面中看到所有的分区队列）。
 当商品发布的消息被生产者发布时，Stream会计算得出分区Key，从而决定这个消息应该加入到哪个Queue里面。在这个过程中，每个消费组/消费者仅会连接到一个Queue，这个Queue中对应的消息只能被特定的消费组/消费者来处理。
+
+## 2-11 基于消费组实现轮循单播功能
+
+- 创建 Producer和Consumer
+- 配置消费组, 启动两个节点
+- RabbitMQ界面单播和广播在Exchange中的不同
+- 消费分区的配置项
+
+### 创建 GroupTopic
+
+com.example.springcloud.topic.GroupTopic
+```java
+public interface GroupTopic {
+
+	/**
+	 * Input channel name.
+	 */
+	String INPUT = "group-consumer";
+
+	/**
+	 * Output channel name.
+	 */
+	String OUTPUT = "group-producer";
+
+	/**
+	 * input=消费者
+	 */
+	@Input(INPUT)
+	SubscribableChannel input();
+
+	/**
+	 * output=生产者
+	 */
+	@Output(OUTPUT)
+	MessageChannel output();
+
+}
+```
+
+com.example.springcloud.biz.controller.DemoController
+
+```java
+@Autowired
+private GroupTopic groupTopicProducer;  // StreamConsumer 没有绑定前是找不到 标记红色波浪线
+
+@PostMapping("sendToGroup")
+public void sendMessageToGroup(@RequestParam(value = "body") String body) {
+    groupTopicProducer.output().send(MessageBuilder.withPayload(body).build());
+}
+```
+
+com.example.springcloud.biz.StreamConsumer
+```java
+@Slf4j
+@EnableBinding(
+        value = { GroupTopic.class }
+)
+public class StreamConsumer {
+
+	@StreamListener(GroupTopic.INPUT)
+	public void consumeGroupMessage(Object payload) {
+		log.info("Gourp message consumed successfully, payload={}", payload);
+	}
+
+}
+```
+
+```yaml
+---
+# 消息分组示例
+spring:
+  cloud:
+    stream:
+      bindings:
+        group-consumer:  # 消费者绑定
+          destination: group-topic
+          group: Group-A
+        group-producer:  # 生产者绑定
+          destination: group-topic
+
+---
+# 消费分区配置
+spring:
+  cloud:
+    stream:
+      bindings:
+        group-consumer: # com.example.springcloud.topic.GroupTopic
+          consumer:
+            partitioned: true # 打开消费者的消费分区功能
+        group-producer:
+          producer:
+            partition-count: 2 # 两个消息分区
+            # SpEL (Key resolver) 可以定义复杂表达式生成Key
+            # 我们这里用最简化的配置，只有索引参数为 1 的节点（消费者），才能消费消息 ***
+            partition-key-expression: "1"
+      instanceCount: 2 # 当前消费者实例总数
+      instanceIndex: 1 # 最大值 instanceCount-1，当前实例的索引号 ***
+```
+
+### 启动与测试
+
+1. StreamApplication (63000) : Group-A-0
+    1. 修改 "spring.cloud.stream.instanceIndex=0"
+1. StreamApplication (63001) : Group-A-1
+    1. 修改 "spring.cloud.stream.instanceIndex=1"
+1. 使用PostMan测试
+    1. localhost:63000/sendToGroup
+    1. Body (x-www-form-urfencoded)
+    1. body:Test 测试 1234
+
+```xml
+如何指定:
+通过消息分区实现：
+请求后 Group-A-1 的控制台会出现打印信息 "Test 测试 1234", 
+无论请求多少次都会在 Group-A-1 打印,
+为什么呢? 
+因为设置了 "partition-key-expression: "1"" 指定消费
+
+TIPS: 比如已经指定了 Group-A-1 端口 63000, 再启动多个 Group-A-1 端口 63001, 然后再次请求, 会发现他们是依次轮询打印到控制台
+```
+
+> spring.cloud.stream.bindings.group-consumer.group=Group-A 重点是这个分组配置来区分

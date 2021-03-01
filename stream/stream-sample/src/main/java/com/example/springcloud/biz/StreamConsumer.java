@@ -1,5 +1,6 @@
 package com.example.springcloud.biz;
 
+import com.example.springcloud.topic.GroupTopic;
 import com.example.springcloud.topic.MyTopic;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.annotation.EnableBinding;
@@ -21,7 +22,8 @@ import org.springframework.cloud.stream.messaging.Sink;
 @EnableBinding(
         value = {
                 Sink.class,
-				MyTopic.class
+				MyTopic.class,
+				GroupTopic.class
         }
 )
 public class StreamConsumer {
@@ -33,7 +35,12 @@ public class StreamConsumer {
 
 	@StreamListener(MyTopic.INPUT)
 	public void consumeMyMessage(Object payload) {
-		log.info("my message consumed successfully, payload={}", payload);
+		log.info("My message consumed successfully, payload={}", payload);
+	}
+
+	@StreamListener(GroupTopic.INPUT)
+	public void consumeGroupMessage(Object payload) {
+		log.info("Gourp message consumed successfully, payload={}", payload);
 	}
 
 }

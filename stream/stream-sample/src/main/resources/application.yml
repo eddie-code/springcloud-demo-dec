@@ -40,3 +40,33 @@ spring:
           destination: broadcast
         myTopic-producer:  # 生产者绑定
           destination: broadcast
+
+---
+# 消息分组示例
+spring:
+  cloud:
+    stream:
+      bindings:
+        group-consumer:  # 消费者绑定
+          destination: group-topic
+          group: Group-A
+        group-producer:  # 生产者绑定
+          destination: group-topic
+
+---
+# 消费分区配置
+spring:
+  cloud:
+    stream:
+      bindings:
+        group-consumer: # com.example.springcloud.topic.GroupTopic
+          consumer:
+            partitioned: true # 打开消费者的消费分区功能
+        group-producer:
+          producer:
+            partition-count: 2 # 两个消息分区
+            # SpEL (Key resolver) 可以定义复杂表达式生成Key
+            # 我们这里用最简化的配置，只有索引参数为 1 的节点（消费者），才能消费消息 ***
+            partition-key-expression: "1"
+      instanceCount: 2 # 当前消费者实例总数
+      instanceIndex: 1 # 最大值 instanceCount-1，当前实例的索引号 ***
