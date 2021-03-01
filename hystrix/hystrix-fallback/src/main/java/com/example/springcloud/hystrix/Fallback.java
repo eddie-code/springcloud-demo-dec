@@ -81,4 +81,23 @@ public class Fallback implements MyService {
 		return null;
 	}
 
+	/**
+	 * 请求 eureka-client/sayHi2
+	 *
+	 * @return str
+	 */
+	@Override
+	public String sayHi2() {
+		return null;
+	}
+
+	/**
+	 * 求 eureka-client/valid
+	 *
+	 * @return
+	 */
+	@Override
+	public String valid() {
+		return null;
+	}
 }
