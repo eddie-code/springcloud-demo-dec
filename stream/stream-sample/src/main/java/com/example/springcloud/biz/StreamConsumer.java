@@ -1,12 +1,15 @@
 package com.example.springcloud.biz;
 
 import com.example.springcloud.topic.DelayedTopic;
+import com.example.springcloud.topic.ErrorTopic;
 import com.example.springcloud.topic.GroupTopic;
 import com.example.springcloud.topic.MyTopic;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author eddie.lee
@@ -25,7 +28,8 @@ import org.springframework.cloud.stream.messaging.Sink;
                 Sink.class,
 				MyTopic.class,
 				GroupTopic.class,
-				DelayedTopic.class
+				DelayedTopic.class,
+				ErrorTopic.class
         }
 )
 public class StreamConsumer {
@@ -60,6 +64,31 @@ public class StreamConsumer {
 	@StreamListener(DelayedTopic.INPUT)
 	public void consumeDelayedMessage(MessageBean bean) {
 		log.info("Delayed message consumed successfully, payload={}", bean.getPayload());
+	}
+
+	/**
+	 * 线程安全的计数器，起始值=1
+	 */
+	private AtomicInteger count = new AtomicInteger(1);
+
+	/**
+	 * 异常重试（单机版）
+	 * @param bean
+	 */
+	@StreamListener(ErrorTopic.INPUT)
+	public void consumeErrorMessage(MessageBean bean) {
+		log.info("你还好吗？");
+		// 每次都自增一 当你被三整除就放行
+		boolean b = count.incrementAndGet() % 3 == 0;
+		System.out.println(b);
+		if (b) {
+			log.info("很好，谢谢。你呢？");
+			// 成功消费以后, 就会清零
+			count.set(0);
+		} else {
+			log.info("你怎么回事啊？");
+			throw new RuntimeException("我不好~");
+		}
 	}
 
 }

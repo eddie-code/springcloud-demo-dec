@@ -493,3 +493,185 @@ spring:
 ```
 
 ![](.README_images/540cf021.png)
+
+
+## 2-14 Stream本地重试功能
+
+- 创建Producer和Consumer, 在Consumer中抛出异常
+- 设置重试次数
+- 重试成功和失败的表现
+
+### 异常重试（单机版）
+
+(1) &nbsp; 创建 ErrorTopic
+
+com.example.springcloud.topic.ErrorTopic
+
+```java
+public interface ErrorTopic {
+
+	/**
+	 * Input channel name.
+	 */
+	String INPUT = "error-consumer";
+
+	/**
+	 * Output channel name.
+	 */
+	String OUTPUT = "error-producer";
+
+	/**
+	 * input=消费者
+	 */
+	@Input(INPUT)
+	SubscribableChannel input();
+
+	/**
+	 * output=生产者
+	 */
+	@Output(OUTPUT)
+	MessageChannel output();
+
+}
+```
+
+(2) &nbsp; 创建入口
+
+com.example.springcloud.biz.controller.DemoController
+```java
+@PostMapping("sendError")
+public void sendErrorMessage(@RequestParam(value = "body") String body) {
+    MessageBean msg = new MessageBean();
+    msg.setPayload(body);
+    errorTopicProducer.output().send(
+            MessageBuilder.withPayload(msg).build()
+    );
+}
+```
+
+(3) &nbsp; 创建消费
+
+com.example.springcloud.biz.StreamConsumer
+```java
+@StreamListener(ErrorTopic.INPUT)
+public void consumeErrorMessage(MessageBean bean) {
+    log.info("你还好吗？");
+    // 每次都自增一 当你被三整除就放行
+    if (count.incrementAndGet() % 3 == 0) {
+        log.info("很好，谢谢。你呢？");
+        // 成功消费以后, 就会清零
+        count.set(0);
+    } else {
+        log.info("你怎么回事啊？");
+        throw new RuntimeException("我不好~");
+    }
+}
+```
+(4) &nbsp; application.yml
+```yaml
+spring:
+  cloud:
+    stream:
+      bindings:
+        error-consumer: # com.example.springcloud.topic.ErrorTopic
+          destination: error-out-topic
+          # 重试次数（本机重试）
+          # 次数=1 相当于不重试 (不生效), 至少等于=2 才生效
+          consumer:
+            max-attempts: 2
+        error-producer:
+          destination: error-out-topic
+```
+
+(5) &nbsp; PostMan测试
+
+```text
+POST localhost:63000/sendError
+
+body:欢迎关注：https://blog.csdn.net/eddielee9217
+```
+
+第一次请求控制台打印：
+```text
+2021-03-03 22:32:01.928  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+2021-03-03 22:32:01.928  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你怎么回事啊？
+2021-03-03 22:32:02.931  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+2021-03-03 22:32:02.931  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 很好，谢谢。你呢？
+```
+
+第二次请求控制台打印：
+```text
+2021-03-03 22:46:32.802  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+2021-03-03 22:46:32.803  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你怎么回事啊？
+2021-03-03 22:46:33.804  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+2021-03-03 22:46:33.804  INFO 3232 --- [fWtFNuaMvhNrQ-1] c.e.springcloud.biz.StreamConsumer       : 你怎么回事啊？
+2021-03-03 22:46:33.807 ERROR 3232 --- [fWtFNuaMvhNrQ-1] o.s.integration.handler.LoggingHandler   : org.springframework.messaging.MessagingException: Exception thrown while invoking com.example.springcloud.biz.StreamConsumer#consumeErrorMessage[1 args]; nested exception is java.lang.RuntimeException: 我不好~, failedMessage=GenericMessage [payload=byte[63], headers={amqp_receivedDeliveryMode=PERSISTENT, amqp_receivedExchange=error-out-topic, amqp_deliveryTag=2, deliveryAttempt=2, amqp_consumerQueue=error-out-topic.anonymous._hDU9IsTSfWtFNuaMvhNrQ, amqp_redelivered=false, amqp_receivedRoutingKey=error-out-topic, amqp_timestamp=Wed Mar 03 22:46:32 CST 2021, amqp_messageId=6aa4565e-5b6b-ac90-d68e-58d3ec0b0800, id=e372c416-0c2f-6bc6-1509-53dac5f87167, amqp_consumerTag=amq.ctag-WsxmwGdQJ4yHUbdoHvQtdw, contentType=application/json, timestamp=1614782792802}]
+	at org.springframework.cloud.stream.binding.StreamListenerMessageHandler.handleRequestMessage(StreamListenerMessageHandler.java:64)
+	at org.springframework.integration.handler.AbstractReplyProducingMessageHandler.handleMessageInternal(AbstractReplyProducingMessageHandler.java:123)
+	at org.springframework.integration.handler.AbstractMessageHandler.handleMessage(AbstractMessageHandler.java:162)
+	at org.springframework.integration.dispatcher.AbstractDispatcher.tryOptimizedDispatch(AbstractDispatcher.java:115)
+	at org.springframework.integration.dispatcher.UnicastingDispatcher.doDispatch(UnicastingDispatcher.java:132)
+	at org.springframework.integration.dispatcher.UnicastingDispatcher.dispatch(UnicastingDispatcher.java:105)
+	at org.springframework.integration.channel.AbstractSubscribableChannel.doSend(AbstractSubscribableChannel.java:73)
+	at org.springframework.integration.channel.AbstractMessageChannel.send(AbstractMessageChannel.java:453)
+	at org.springframework.integration.channel.AbstractMessageChannel.send(AbstractMessageChannel.java:401)
+	at org.springframework.messaging.core.GenericMessagingTemplate.doSend(GenericMessagingTemplate.java:187)
+	at org.springframework.messaging.core.GenericMessagingTemplate.doSend(GenericMessagingTemplate.java:166)
+	at org.springframework.messaging.core.GenericMessagingTemplate.doSend(GenericMessagingTemplate.java:47)
+	at org.springframework.messaging.core.AbstractMessageSendingTemplate.send(AbstractMessageSendingTemplate.java:109)
+	at org.springframework.integration.endpoint.MessageProducerSupport.sendMessage(MessageProducerSupport.java:205)
+	at org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter.access$1100(AmqpInboundChannelAdapter.java:57)
+	at org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter$Listener.lambda$onMessage$0(AmqpInboundChannelAdapter.java:211)
+	at org.springframework.retry.support.RetryTemplate.doExecute(RetryTemplate.java:287)
+	at org.springframework.retry.support.RetryTemplate.execute(RetryTemplate.java:180)
+	at org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter$Listener.onMessage(AmqpInboundChannelAdapter.java:208)
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doInvokeListener(AbstractMessageListenerContainer.java:1552)
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.actualInvokeListener(AbstractMessageListenerContainer.java:1478)
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.invokeListener(AbstractMessageListenerContainer.java:1466)
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doExecuteListener(AbstractMessageListenerContainer.java:1461)
+	at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListener(AbstractMessageListenerContainer.java:1410)
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.doReceiveAndExecute(SimpleMessageListenerContainer.java:870)
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.receiveAndExecute(SimpleMessageListenerContainer.java:854)
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.access$1600(SimpleMessageListenerContainer.java:78)
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.mainLoop(SimpleMessageListenerContainer.java:1137)
+	at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1043)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.RuntimeException: 我不好~
+	at com.example.springcloud.biz.StreamConsumer.consumeErrorMessage(StreamConsumer.java:88)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:171)
+	at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:120)
+	at org.springframework.cloud.stream.binding.StreamListenerMessageHandler.handleRequestMessage(StreamListenerMessageHandler.java:55)
+	... 29 more
+```
+
+分析：
+```text
+第一次：  3 % 3 = 0
+
+2021-03-03 22:57:59.771  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+2021-03-03 22:58:02.970  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 很好，谢谢。你呢？
+
+
+第二次：  1 % 3 = 1
+
+2021-03-03 22:58:49.909  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+false
+2021-03-03 22:59:39.875  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 你怎么回事啊？
+2021-03-03 22:59:40.876  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 你还好吗？
+
+********
+第二次请求,也是不成功 1 不等于 0 就会自动重试机制, 就会打印下面的报错信息
+
+为什么是第二次呢？  因为配置：spring.cloud.stream.bindings.error-consumer.consumer.max-attempts=2
+********
+
+false
+2021-03-03 23:00:43.011  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 你怎么回事啊？
+2021-03-03 23:00:43.012 ERROR 6548 --- [zmiYknwj6_Azw-1] o.s.integration.handler.LoggingHandler   : org.springframework.messaging.MessagingException: Exception thrown while invoking com.example.springcloud.biz.StreamConsumer#consumeErrorMessage[1 args]; nested exception is java.lang.RuntimeException: 我不好~, failedMessage=GenericMessage [payload=byte[63], headers={amqp_receivedDeliveryMode=PERSISTENT, amqp_receivedExchange=error-out-topic, amqp_deliveryTag=6, deliveryAttempt=2, amqp_consumerQueue=error-out-topic.anonymous.dt-kEM12TzmiYknwj6_Azw, amqp_redelivered=false, amqp_receivedRoutingKey=error-out-topic, amqp_timestamp=Wed Mar 03 22:58:49 CST 2021, amqp_messageId=2c3f4678-6690-0a84-c5e7-fcf916bdf39c, id=a98a82f7-261d-ba23-d365-a4e1af91a390, amqp_consumerTag=amq.ctag-AatP0-GItUPPvBi92sxuPg, contentType=application/json, timestamp=1614783529909}]
+
+
+```

@@ -86,3 +86,19 @@ spring:
           delayed-producer:
             producer:
               delayed-exchange: true # 延迟队列
+
+---
+# 异常消息（单机版重试）
+spring:
+  cloud:
+    stream:
+      bindings:
+        error-consumer: # com.example.springcloud.topic.ErrorTopic
+          destination: error-out-topic
+          # 重试次数（本机重试）
+          # 次数=1 相当于不重试 (不生效), 至少等于=2 才生效
+          consumer:
+            max-attempts: 2
+        error-producer:
+          destination: error-out-topic
+

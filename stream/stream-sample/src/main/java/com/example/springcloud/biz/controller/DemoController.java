@@ -2,6 +2,7 @@ package com.example.springcloud.biz.controller;
 
 import com.example.springcloud.biz.MessageBean;
 import com.example.springcloud.topic.DelayedTopic;
+import com.example.springcloud.topic.ErrorTopic;
 import com.example.springcloud.topic.GroupTopic;
 import com.example.springcloud.topic.MyTopic;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,9 @@ public class DemoController {
 
 	@Autowired
 	private DelayedTopic delayedTopicProducer;
+
+	@Autowired
+	private ErrorTopic errorTopicProducer;
 
 	/**
 	 * 简单广播消息
@@ -77,6 +81,20 @@ public class DemoController {
                         .setHeader("x-delay", seconds * 1000)
                         .build()
         );
+	}
+
+	/**
+	 * 异常重试（单机版）
+	 * 
+	 * @param body
+	 */
+	@PostMapping("sendError")
+	public void sendErrorMessage(@RequestParam(value = "body") String body) {
+		MessageBean msg = new MessageBean();
+		msg.setPayload(body);
+		errorTopicProducer.output().send(
+				MessageBuilder.withPayload(msg).build()
+		);
 	}
 
 }
