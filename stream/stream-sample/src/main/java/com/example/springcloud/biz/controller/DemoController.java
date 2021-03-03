@@ -1,5 +1,7 @@
 package com.example.springcloud.biz.controller;
 
+import com.example.springcloud.biz.MessageBean;
+import com.example.springcloud.topic.DelayedTopic;
 import com.example.springcloud.topic.GroupTopic;
 import com.example.springcloud.topic.MyTopic;
 import lombok.extern.slf4j.Slf4j;
@@ -23,21 +25,58 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class DemoController {
 
-    @Autowired
-    private MyTopic producer;
+	@Autowired
+	private MyTopic producer;
 
-    @Autowired
-    private GroupTopic groupTopicProducer;  // StreamConsumer 没有绑定前是找不到 标记红色波浪线
+    /**
+     * StreamConsumer 没有绑定前是找不到 标记红色波浪线
+     */
+	@Autowired
+	private GroupTopic groupTopicProducer;
 
-    @PostMapping("send")
-    public void sendMessage(@RequestParam(value = "body") String body) {
-        producer.output().send(MessageBuilder.withPayload(body).build());
-    }
+	@Autowired
+	private DelayedTopic delayedTopicProducer;
 
-    @PostMapping("sendToGroup")
-    public void sendMessageToGroup(@RequestParam(value = "body") String body) {
-        groupTopicProducer.output().send(MessageBuilder.withPayload(body).build());
-    }
+	/**
+	 * 简单广播消息
+	 * 
+	 * @param body
+	 */
+	@PostMapping("send")
+	public void sendMessage(@RequestParam(value = "body") String body) {
+		producer.output().send(MessageBuilder.withPayload(body).build());
+	}
 
+	/**
+	 * 消息分组和消息分区
+	 * 
+	 * @param body
+	 */
+	@PostMapping("sendToGroup")
+	public void sendMessageToGroup(@RequestParam(value = "body") String body) {
+		groupTopicProducer.output().send(MessageBuilder.withPayload(body).build());
+	}
+
+	/**
+	 * 延迟消息
+	 * 
+	 * @param body
+	 * @param seconds
+	 */
+	@PostMapping("sendDM")
+	public void sendDelayedMessage(@RequestParam(value = "body") String body,
+			@RequestParam(value = "seconds") Integer seconds) {
+
+		MessageBean msg = new MessageBean();
+		msg.setPayload(body);
+
+		log.info("[{}]秒后准备发送延迟消息",seconds);
+
+		delayedTopicProducer.output().send(
+		        MessageBuilder.withPayload(msg)
+                        .setHeader("x-delay", seconds * 1000)
+                        .build()
+        );
+	}
 
 }

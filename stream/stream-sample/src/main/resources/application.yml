@@ -70,3 +70,19 @@ spring:
             partition-key-expression: "1"
       instanceCount: 2 # 当前消费者实例总数
       instanceIndex: 1 # 最大值 instanceCount-1，当前实例的索引号 ***
+
+---
+# 延迟消息配置
+spring:
+  cloud:
+    stream:
+      bindings:
+        delayed-consumer:
+          destination: delayed-topic
+        delayed-producer:
+          destination: delayed-topic
+      rabbit:
+        bindings:
+          delayed-producer:
+            producer:
+              delayed-exchange: true # 延迟队列
