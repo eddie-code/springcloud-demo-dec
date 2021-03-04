@@ -104,7 +104,6 @@ spring:
 
 ---
 # 异常消息（re-queue重试）
-#
 spring:
   cloud:
     stream:
@@ -128,3 +127,23 @@ spring:
 #  rabbitmq:
 #    listener:
 #      default-requeue-rejected: true
+
+---
+# 死信队列配置
+spring:
+  cloud:
+    stream:
+      bindings:
+        dlq-consumer:
+          destination: dlq-topic
+          consumer:
+            max-attempts: 2
+          group: dlq-group
+        dlq-producer:
+          destination: dlq-topic
+      rabbit:
+        bindings:
+          dlq-consumer:
+            consumer:
+              auto-bind-dlq: true # 开启死信队列（默认 topic.dlq）
+

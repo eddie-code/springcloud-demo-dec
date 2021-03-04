@@ -41,6 +41,9 @@ public class DemoController {
 	@Autowired
 	private RequeueTopic requeueTopicProducer;
 
+	@Autowired
+	private DlqTopic dlqTopicProducer;
+
 	/**
 	 * 简单广播消息
 	 * 
@@ -109,5 +112,16 @@ public class DemoController {
 		requeueTopicProducer.output().send(MessageBuilder.withPayload(msg).build());
 	}
 
+	/**
+	 * 死信队列测试
+	 * 
+	 * @param body
+	 */
+	@PostMapping("dlq")
+	public void sendMessageToDlq(@RequestParam(value = "body") String body) {
+		MessageBean msg = new MessageBean();
+		msg.setPayload(body);
+		dlqTopicProducer.output().send(MessageBuilder.withPayload(msg).build());
+	}
 
 }

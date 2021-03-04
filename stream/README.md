@@ -789,3 +789,207 @@ body:欢迎关注：https://blog.csdn.net/eddielee9217
 ![](.README_images/e734b7e5.png)
 
 ![](.README_images/df8d507d.png)
+
+
+## 2-18 借助死信队列实现异常处理
+
+- 死信队列介绍
+- 使用 rabbitmq-plugins enable 命令开启RabbitMQ插件
+  - rabbitmq_shovel
+  - rabbitmq_shovel_management
+- 创建Producer和Consumer, 配置死信队列
+- 启动应用, 查看RabbitMQ界面的死信队列
+- 死信队列消息重新消费
+
+### 死信队列 (DLQ)
+
+(1) &nbsp; 介绍
+- 死信队列：DLX，dead-letter-exchange
+- 利用DLX，当消息在一个队列中变成死信 (dead message) 之后，它能被重新publish到另一个Exchange，这个Exchange就是DLX
+
+(2) &nbsp; 消息变成死信有以下几种情况
+- 消息被拒绝(basic.reject / basic.nack)，并且requeue = false
+- 消息TTL过期
+- 队列达到最大长度
+
+(3) &nbsp; 死信处理过程
+- DLX也是一个正常的Exchange，和一般的Exchange没有区别，它能在任何的队列上被指定，实际上就是设置某个队列的属性。
+- 当这个队列中有死信时，RabbitMQ就会自动的将这个消息重新发布到设置的Exchange上去，进而被路由到另一个队列。
+- 可以监听这个队列中的消息做相应的处理。
+
+(4) &nbsp; 
+
+### 开启插件
+
+基本默认已经安装，只要开启就可以
+
+(1) &nbsp; 进入容器, 查看插件状态
+
+```shell script
+[root@k8s-master1 ~]# docker exec -it myrabbit1 bash
+root@rabbit1:/# rabbitmq-plugins list |grep 'rabbitmq_shovel'
+[  ] rabbitmq_shovel                   3.6.15
+[  ] rabbitmq_shovel_management        3.6.15
+```
+
+(2) &nbsp; 开启插件
+```shell script
+root@rabbit1:/# rabbitmq-plugins enable rabbitmq_shovel
+The following plugins have been enabled:
+  rabbitmq_shovel
+
+Applying plugin configuration to rabbit@rabbit1... started 1 plugin.
+
+root@rabbit1:/# rabbitmq-plugins enable rabbitmq_shovel_management 
+The following plugins have been enabled:
+  rabbitmq_shovel_management
+
+Applying plugin configuration to rabbit@rabbit1... started 1 plugin.
+```
+
+(3) &nbsp; 确认是否开启插件
+```shell script
+root@rabbit1:/# rabbitmq-plugins list |grep 'rabbitmq_shovel'
+[E*] rabbitmq_shovel                   3.6.15
+[E*] rabbitmq_shovel_management        3.6.15
+```
+
+### 主题
+com.example.springcloud.topic.DlqTopic
+```java
+public interface DlqTopic {
+
+	/**
+	 * Input channel name.
+	 */
+	String INPUT = "dlq-consumer";
+
+	/**
+	 * Output channel name.
+	 */
+	String OUTPUT = "dlq-producer";
+
+	/**
+	 * input=消费者
+	 */
+	@Input(INPUT)
+	SubscribableChannel input();
+
+	/**
+	 * output=生产者
+	 */
+	@Output(OUTPUT)
+	MessageChannel output();
+
+}
+```
+
+### Producer
+
+com.example.springcloud.biz.controller.DemoController
+```java
+@PostMapping("dlq")
+public void sendMessageToDlq(@RequestParam(value = "body") String body) {
+    MessageBean msg = new MessageBean();
+    msg.setPayload(body);
+    dlqTopicProducer.output().send(MessageBuilder.withPayload(msg).build());
+}
+```
+
+### Consumer
+
+com.example.springcloud.biz.StreamConsumer
+```java
+@StreamListener(DlqTopic.INPUT)
+public void consumeDlqMessage(MessageBean bean) {
+    log.info("Dlq - 你还好吗?");
+    if (count.incrementAndGet() % 3 == 0) {
+        log.info("Dlq - 很好，谢谢。你呢？");
+    } else {
+        log.info("Dlq - 你怎么回事啊?");
+        throw new RuntimeException("我不好~");
+    }
+}
+```
+
+### 死信队列配置
+```yaml
+spring:
+  cloud:
+    stream:
+      bindings:
+        dlq-consumer:
+          destination: dlq-topic
+          consumer:
+            max-attempts: 2
+          group: dlq-group
+        dlq-producer:
+          destination: dlq-topic
+      rabbit:
+        bindings:
+          dlq-consumer:
+            consumer:
+              auto-bind-dlq: true # 开启死信队列（默认 topic.dlq）
+                                  # 参数还有很多，比如：指定某个Queue 而不是使用自动创建的等等...
+```
+
+### 测试环节
+
+- 启动服务
+  - StreamApplication (63000) :63000/
+  - 访问网页 http://192.168.8.240:15672/#/queues
+  
+![](.README_images/539a4508.png)
+
+- PostMan
+  - POST localhost:63000/dlq
+  
+控制台打印
+```text
+2021-03-04 16:31:55.013  INFO 22640 --- [io-63000-exec-2] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [192.168.8.240:5672]
+2021-03-04 16:31:55.022  INFO 22640 --- [io-63000-exec-2] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory.publisher#1d503bab:0/SimpleConnection@ce71016 [delegate=amqp://guest@192.168.8.240:5672/, localPort= 2986]
+2021-03-04 16:31:55.025  INFO 22640 --- [io-63000-exec-2] o.s.amqp.rabbit.core.RabbitAdmin         : Auto-declaring a non-durable, auto-delete, or exclusive Queue (input.anonymous.wFTQGtlIT72X_ay6ogInmQ) durable:false, auto-delete:true, exclusive:true. It will be redeclared if the broker stops and is restarted while the connection factory is alive, but all messages will be lost.
+2021-03-04 16:31:55.025  INFO 22640 --- [io-63000-exec-2] o.s.amqp.rabbit.core.RabbitAdmin         : Auto-declaring a non-durable, auto-delete, or exclusive Queue (broadcast.anonymous.9qkp5d-qSpCdWhEJHzuojQ) durable:false, auto-delete:true, exclusive:true. It will be redeclared if the broker stops and is restarted while the connection factory is alive, but all messages will be lost.
+2021-03-04 16:31:55.025  INFO 22640 --- [io-63000-exec-2] o.s.amqp.rabbit.core.RabbitAdmin         : Auto-declaring a non-durable, auto-delete, or exclusive Queue (delayed-topic.anonymous.l1w0SIs3RbadrUSwJYkcQw) durable:false, auto-delete:true, exclusive:true. It will be redeclared if the broker stops and is restarted while the connection factory is alive, but all messages will be lost.
+2021-03-04 16:31:55.025  INFO 22640 --- [io-63000-exec-2] o.s.amqp.rabbit.core.RabbitAdmin         : Auto-declaring a non-durable, auto-delete, or exclusive Queue (error-out-topic.anonymous.gOKMzyg-SKCYIv4ZvRNM7A) durable:false, auto-delete:true, exclusive:true. It will be redeclared if the broker stops and is restarted while the connection factory is alive, but all messages will be lost.
+2021-03-04 16:31:55.094  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你还好吗?
+2021-03-04 16:31:55.094  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你怎么回事啊?
+2021-03-04 16:31:56.097  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你还好吗?
+2021-03-04 16:31:56.097  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 很好，谢谢。你呢？
+```
+
+- 再次请求
+  - POST localhost:63000/dlq
+  
+控制台打印
+```text
+2021-03-04 16:33:32.370  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你还好吗?
+2021-03-04 16:33:32.371  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你怎么回事啊?
+2021-03-04 16:33:33.372  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你还好吗?
+2021-03-04 16:33:33.372  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你怎么回事啊?
+2021-03-04 16:33:33.375 ERROR 22640 --- [pic.dlq-group-1] o.s.integration.handler.LoggingHandler   : org.springframework.messaging.MessagingException: Exception thrown while invoking com.example.springcloud.biz.StreamConsumer#consumeDlqMessage[1 args]; nested exception is java.lang.RuntimeException: 我不好~, failedMessage=GenericMessage [payload=byte[63], headers={amqp_receivedDeliveryMode=PERSISTENT, amqp_receivedExchange=dlq-topic, amqp_deliveryTag=2, deliveryAttempt=2, amqp_consumerQueue=dlq-topic.dlq-group, amqp_redelivered=false, amqp_receivedRoutingKey=dlq-topic, amqp_timestamp=Thu Mar 04 16:33:32 CST 2021, amqp_messageId=a3b4012e-4060-12f7-a022-7f640dbf2a58, id=60e3aeda-c236-79b1-c100-fc3ff6a8d540, amqp_consumerTag=amq.ctag-kGeRaKUKk_7lJjOYrlTIeA, contentType=application/json, timestamp=1614846812370}]
+	at org.springframework.cloud.stream.binding.StreamListenerMessageHandler.handleRequestMessage(StreamListenerMessageHandler.java:64)
+    ...
+Caused by: java.lang.RuntimeException: 我不好~
+	at com.example.springcloud.biz.StreamConsumer.consumeDlqMessage(StreamConsumer.java:121) ~[classes/:na]
+    ...
+```
+
+会发现这次就抛出异常了.
+
+然后在查看页面, 会发现 Queue dlq-topic.dlq-group.dlq 已经有变化了
+
+![](.README_images/4eae43d1.png)
+
+将这死信队列里面的消息, 重新激活消费, 可以复制Queue里面的名称进行重新激活消费
+
+![](.README_images/45fe99a6.png)
+
+点击 Move Message 后控制台会打印正常消息
+
+```text
+2021-03-04 17:29:42.034  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 你还好吗?
+2021-03-04 17:29:42.038  INFO 22640 --- [pic.dlq-group-1] c.e.springcloud.biz.StreamConsumer       : Dlq - 很好，谢谢。你呢？
+```
+
+Queue dlq-topic.dlq-group.dlq 的总数也归零, 证明消费了！

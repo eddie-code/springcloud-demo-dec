@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 				GroupTopic.class,
 				DelayedTopic.class,
 				ErrorTopic.class,
-				RequeueTopic.class
+				RequeueTopic.class,
+				DlqTopic.class
         }
 )
 public class StreamConsumer {
@@ -96,12 +97,29 @@ public class StreamConsumer {
 	 */
 	@StreamListener(RequeueTopic.INPUT)
 	public void requeueErrorMessage(MessageBean bean) {
-		log.info("Are you OK?");
+		log.info("你还好吗？");
 		try {
 			Thread.sleep(3000L);
 		} catch (Exception e) {
+			//
 		}
-		 throw new RuntimeException("I'm not OK");
+		throw new RuntimeException("我不好~");
+	}
+
+	/**
+	 * 死信队列
+	 * 
+	 * @param bean
+	 */
+	@StreamListener(DlqTopic.INPUT)
+	public void consumeDlqMessage(MessageBean bean) {
+		log.info("Dlq - 你还好吗?");
+		if (count.incrementAndGet() % 3 == 0) {
+			log.info("Dlq - 很好，谢谢。你呢？");
+		} else {
+			log.info("Dlq - 你怎么回事啊?");
+			throw new RuntimeException("我不好~");
+		}
 	}
 
 }
