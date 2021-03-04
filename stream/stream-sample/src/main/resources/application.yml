@@ -102,3 +102,29 @@ spring:
         error-producer:
           destination: error-out-topic
 
+---
+# 异常消息（re-queue重试）
+#
+spring:
+  cloud:
+    stream:
+      bindings:
+        requeue-consumer:
+          destination: requeue-topic
+          group: requeue-group
+          consumer:
+            max-attempts: 1 # 强制 retry 次数指定=1 不让你在原地 retry 把失败消息退回到 rabbit 里在消费
+        requeue-producer:
+          destination: requeue-topic
+      rabbit:
+        bindings:
+          requeue-consumer:
+            consumer:
+              requeueRejected: true # 仅对当前requeue-consumer，开启requeue
+
+---
+# 默认全局开启requeue
+#spring:
+#  rabbitmq:
+#    listener:
+#      default-requeue-rejected: true

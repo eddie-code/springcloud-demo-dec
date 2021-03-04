@@ -1,9 +1,6 @@
 package com.example.springcloud.biz;
 
-import com.example.springcloud.topic.DelayedTopic;
-import com.example.springcloud.topic.ErrorTopic;
-import com.example.springcloud.topic.GroupTopic;
-import com.example.springcloud.topic.MyTopic;
+import com.example.springcloud.topic.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
@@ -29,7 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 				MyTopic.class,
 				GroupTopic.class,
 				DelayedTopic.class,
-				ErrorTopic.class
+				ErrorTopic.class,
+				RequeueTopic.class
         }
 )
 public class StreamConsumer {
@@ -89,6 +87,21 @@ public class StreamConsumer {
 			log.info("你怎么回事啊？");
 			throw new RuntimeException("我不好~");
 		}
+	}
+
+	/**
+	 * 异常重试（联机版-重新入列）
+	 * 
+	 * @param bean
+	 */
+	@StreamListener(RequeueTopic.INPUT)
+	public void requeueErrorMessage(MessageBean bean) {
+		log.info("Are you OK?");
+		try {
+			Thread.sleep(3000L);
+		} catch (Exception e) {
+		}
+		 throw new RuntimeException("I'm not OK");
 	}
 
 }

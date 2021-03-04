@@ -673,5 +673,119 @@ false
 2021-03-03 23:00:43.011  INFO 6548 --- [zmiYknwj6_Azw-1] c.e.springcloud.biz.StreamConsumer       : 你怎么回事啊？
 2021-03-03 23:00:43.012 ERROR 6548 --- [zmiYknwj6_Azw-1] o.s.integration.handler.LoggingHandler   : org.springframework.messaging.MessagingException: Exception thrown while invoking com.example.springcloud.biz.StreamConsumer#consumeErrorMessage[1 args]; nested exception is java.lang.RuntimeException: 我不好~, failedMessage=GenericMessage [payload=byte[63], headers={amqp_receivedDeliveryMode=PERSISTENT, amqp_receivedExchange=error-out-topic, amqp_deliveryTag=6, deliveryAttempt=2, amqp_consumerQueue=error-out-topic.anonymous.dt-kEM12TzmiYknwj6_Azw, amqp_redelivered=false, amqp_receivedRoutingKey=error-out-topic, amqp_timestamp=Wed Mar 03 22:58:49 CST 2021, amqp_messageId=2c3f4678-6690-0a84-c5e7-fcf916bdf39c, id=a98a82f7-261d-ba23-d365-a4e1af91a390, amqp_consumerTag=amq.ctag-AatP0-GItUPPvBi92sxuPg, contentType=application/json, timestamp=1614783529909}]
 
-
 ```
+
+
+## 2-16 Stream实现Requeue操作
+
+> re-queue（重新入队）: 是指失败的消息, 放回到 RabbitMQ 当中, 然后让消费者的集群重新拉取消息.
+
+- 创建Producer和Consumer
+- 开启 Re-queue功能 ( retry配置有冲突 )
+- 侧首 Re-queue在不同节点的消费情况
+
+### 创建主题
+
+com.example.springcloud.topic.RequeueTopic
+```java
+public interface RequeueTopic {
+
+	/**
+	 * Input channel name.
+	 */
+	String INPUT = "requeue-consumer";
+
+	/**
+	 * Output channel name.
+	 */
+	String OUTPUT = "requeue-producer";
+
+	/**
+	 * input=消费者
+	 */
+	@Input(INPUT)
+	SubscribableChannel input();
+
+	/**
+	 * output=生产者
+	 */
+	@Output(OUTPUT)
+	MessageChannel output();
+
+}
+```
+
+### 创建生产者 (Producer)
+
+```java
+@PostMapping("requeue")
+public void sendErrorMessageToMq(@RequestParam(value = "body") String body) {
+    MessageBean msg = new MessageBean();
+    msg.setPayload(body);
+    requeueTopicProducer.output().send(MessageBuilder.withPayload(msg).build());
+}
+```
+
+### 创建消费者（Consumer）
+
+```java
+@StreamListener(RequeueTopic.INPUT)
+public void requeueErrorMessage(MessageBean bean) {
+    log.info("Are you OK?");
+    try {
+        Thread.sleep(3000L);
+    } catch (Exception e) {
+    }
+     throw new RuntimeException("I'm not OK");
+}
+```
+
+### 配置 Re-queue功能
+
+```yaml
+# 异常消息（re-queue重试）
+#
+spring:
+  cloud:
+    stream:
+      bindings:
+        requeue-consumer:
+          destination: requeue-topic
+          group: requeue-group
+          consumer:
+            max-attempts: 1 # 强制 retry 次数指定=1 不让你在原地 retry 把失败消息退回到 rabbit 里在消费
+        requeue-producer:
+          destination: requeue-topic
+      rabbit:
+        bindings:
+          requeue-consumer:
+            consumer:
+              requeueRejected: true # 仅对当前requeue-consumer，开启requeue
+
+---
+# 默认全局开启requeue
+#spring:
+#  rabbitmq:
+#    listener:
+#      default-requeue-rejected: true
+```
+
+### 测试
+
+> 本次Demo是无限循环来测试, 每隔三秒一次, 也会在两个服务之间轮询打印（在负载均衡环境下也是同理效果）
+
+启动服务
+- StreamApplication (63000) :63000/
+- StreamApplication (63001) :63001/
+
+PostMan
+
+```text
+POST localhost:63000/requeue
+
+body:欢迎关注：https://blog.csdn.net/eddielee9217
+```
+
+![](.README_images/e734b7e5.png)
+
+![](.README_images/df8d507d.png)

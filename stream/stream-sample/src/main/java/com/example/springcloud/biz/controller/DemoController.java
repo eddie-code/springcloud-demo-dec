@@ -1,10 +1,7 @@
 package com.example.springcloud.biz.controller;
 
 import com.example.springcloud.biz.MessageBean;
-import com.example.springcloud.topic.DelayedTopic;
-import com.example.springcloud.topic.ErrorTopic;
-import com.example.springcloud.topic.GroupTopic;
-import com.example.springcloud.topic.MyTopic;
+import com.example.springcloud.topic.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.support.MessageBuilder;
@@ -39,7 +36,10 @@ public class DemoController {
 	private DelayedTopic delayedTopicProducer;
 
 	@Autowired
-	private ErrorTopic errorTopicProducer;
+	private ErrorTopic errorTopicProducer;	
+	
+	@Autowired
+	private RequeueTopic requeueTopicProducer;
 
 	/**
 	 * 简单广播消息
@@ -96,5 +96,18 @@ public class DemoController {
 				MessageBuilder.withPayload(msg).build()
 		);
 	}
+
+	/**
+	 * 异常重试（联机版 - 重新入列）
+	 * 
+	 * @param body
+	 */
+	@PostMapping("requeue")
+	public void sendErrorMessageToMq(@RequestParam(value = "body") String body) {
+		MessageBean msg = new MessageBean();
+		msg.setPayload(body);
+		requeueTopicProducer.output().send(MessageBuilder.withPayload(msg).build());
+	}
+
 
 }
