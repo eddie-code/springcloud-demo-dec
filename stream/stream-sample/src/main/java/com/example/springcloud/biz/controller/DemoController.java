@@ -44,6 +44,9 @@ public class DemoController {
 	@Autowired
 	private DlqTopic dlqTopicProducer;
 
+	@Autowired
+	private FallbackTopic fallbackTopicProducer;
+
 	/**
 	 * 简单广播消息
 	 * 
@@ -122,6 +125,24 @@ public class DemoController {
 		MessageBean msg = new MessageBean();
 		msg.setPayload(body);
 		dlqTopicProducer.output().send(MessageBuilder.withPayload(msg).build());
+	}
+
+	/**
+	 * Fallback + 升级版本
+	 */
+	@PostMapping("fallback")
+	public void sendMessageToFallback(
+			@RequestParam(value = "body") String body,
+			@RequestParam(value = "version", defaultValue = "1.0") String version) {
+
+		MessageBean msg = new MessageBean();
+		msg.setPayload(body);
+
+		fallbackTopicProducer.output().send(
+				MessageBuilder.withPayload(msg)
+						.setHeader("version", version)
+						.build()
+		);
 	}
 
 }

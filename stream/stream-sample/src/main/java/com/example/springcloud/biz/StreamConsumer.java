@@ -5,6 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.stream.annotation.StreamListener;
 import org.springframework.cloud.stream.messaging.Sink;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.handler.annotation.Header;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -28,7 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 				DelayedTopic.class,
 				ErrorTopic.class,
 				RequeueTopic.class,
-				DlqTopic.class
+				DlqTopic.class,
+				FallbackTopic.class
         }
 )
 public class StreamConsumer {
@@ -120,6 +124,44 @@ public class StreamConsumer {
 			log.info("Dlq - 你怎么回事啊?");
 			throw new RuntimeException("我不好~");
 		}
+	}
+
+	/**
+	 * Fallback + 升级版本
+	 * @param bean
+	 * @param version
+	 */
+	@StreamListener(FallbackTopic.INPUT)
+	public void goodbyeBadGuy(MessageBean bean,
+							  @Header("version") String version) {
+		log.info("Fallback - 你还好吗?");
+
+		if ("1.0".equalsIgnoreCase(version)) {
+			log.info("Fallback - 很好，谢谢。你呢");
+
+		} else if ("2.0".equalsIgnoreCase(version)) {
+			log.info("Fallback - 不支持的版本");
+			throw new RuntimeException("我不好");
+		} else {
+			log.info("Fallback - 版本={}", version);
+		}
+	}
+
+	/**
+	 * 降级流程
+	 *
+	 * input channel -> fallback-topic.fallback-group.errors
+	 *
+	 * 对应 application.yml 里面参数
+	 *
+	 * 如果出现异常和重试次数达到一定就会跳到这个方法
+	 * 
+	 * @param message
+	 */
+	@ServiceActivator(inputChannel = "fallback-topic.fallback-group.errors")
+	public void fallback(Message<?> message) {
+		log.info("fallback - 已回退");
+		// 可以写自己逻辑, 或者流程~
 	}
 
 }

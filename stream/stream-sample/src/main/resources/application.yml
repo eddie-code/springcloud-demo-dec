@@ -147,3 +147,19 @@ spring:
             consumer:
               auto-bind-dlq: true # 开启死信队列（默认 topic.dlq）
 
+---
+# Fallback配置
+# input channel -> fallback-topic.fallback-group.errors
+spring:
+  cloud:
+    stream:
+      bindings:
+        fallback-consumer:
+          destination: fallback-topic
+          consumer:
+            max-attempts: 2
+          group: fallback-group
+        fallback-producer:
+          destination: fallback-topic
+
+

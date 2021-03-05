@@ -993,3 +993,141 @@ Caused by: java.lang.RuntimeException: 我不好~
 ```
 
 Queue dlq-topic.dlq-group.dlq 的总数也归零, 证明消费了！
+
+
+## 2-19 消息驱动中的降级和接口升版
+
+- 借助spring-integration实现Fallback逻辑
+- Consumer升级版的玩法
+
+(1) &nbsp; 主题
+```java
+public interface FallbackTopic {
+
+	/**
+	 * Input channel name.
+	 */
+	String INPUT = "fallback-consumer";
+
+	/**
+	 * Output channel name.
+	 */
+	String OUTPUT = "fallback-producer";
+
+	/**
+	 * input=消费者
+	 */
+	@Input(INPUT)
+	SubscribableChannel input();
+
+	/**
+	 * output=生产者
+	 */
+	@Output(OUTPUT)
+	MessageChannel output();
+
+}
+```
+
+(2) &nbsp; 生产者
+```java
+@PostMapping("fallback")
+public void sendMessageToFallback(
+        @RequestParam(value = "body") String body,
+        @RequestParam(value = "version", defaultValue = "1.0") String version) {
+
+    MessageBean msg = new MessageBean();
+    msg.setPayload(body);
+
+    fallbackTopicProducer.output().send(
+            MessageBuilder.withPayload(msg)
+                    .setHeader("version", version)
+                    .build()
+    );
+}
+```
+
+(3) &nbsp; 消费者
+```java
+/**
+ * Fallback + 升级版本
+ * @param bean
+ * @param version
+ */
+@StreamListener(FallbackTopic.INPUT)
+public void goodbyeBadGuy(MessageBean bean,
+                          @Header("version") String version) {
+    log.info("Fallback - 你还好吗?");
+
+    if ("1.0".equalsIgnoreCase(version)) {
+        log.info("Fallback - 很好，谢谢。你呢");
+
+    } else if ("2.0".equalsIgnoreCase(version)) {
+        log.info("Fallback - 不支持的版本");
+        throw new RuntimeException("我不好");
+    } else {
+        log.info("Fallback - 版本={}", version);
+    }
+}
+
+/**
+ * 降级流程
+ *
+ * input channel -> fallback-topic.fallback-group.errors
+ *
+ * 对应 application.yml 里面参数
+ *
+ * 如果出现异常和重试次数达到一定就会跳到这个方法
+ * 
+ * @param message
+ */
+@ServiceActivator(inputChannel = "fallback-topic.fallback-group.errors")
+public void fallback(Message<?> message) {
+    log.info("fallback - 已回退");
+    // 可以写自己逻辑, 或者流程~ 
+}
+```
+
+(4) &nbsp; 配置
+```yaml
+# Fallback配置
+# input channel -> fallback-topic.fallback-group.errors
+spring:
+  cloud:
+    stream:
+      bindings:
+        fallback-consumer:
+          destination: fallback-topic
+          consumer:
+            max-attempts: 2
+          group: fallback-group
+        fallback-producer:
+          destination: fallback-topic
+```
+
+(5) &nbsp; 测试
+
+第一次请求
+```text
+POST localhost:63000/fallback
+
+body:欢迎关注：https://blog.csdn.net/eddielee9217
+version:1.0
+
+2021-03-05 15:39:02.824  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : Fallback - 你还好吗?
+2021-03-05 15:39:02.824  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : Fallback - 很好，谢谢。你呢
+```
+
+第二次请求
+```text
+POST localhost:63000/fallback
+
+body:欢迎关注：https://blog.csdn.net/eddielee9217
+version:2.0
+
+2021-03-05 15:39:13.131  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : Fallback - 你还好吗?
+2021-03-05 15:39:13.131  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : Fallback - 不支持的版本
+2021-03-05 15:39:14.135  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : Fallback - 你还好吗?
+2021-03-05 15:39:14.135  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : Fallback - 不支持的版本
+2021-03-05 15:39:14.139  INFO 15472 --- [allback-group-1] c.e.springcloud.biz.StreamConsumer       : fallback - 已回退
+```
