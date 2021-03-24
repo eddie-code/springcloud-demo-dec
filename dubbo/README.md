@@ -322,6 +322,35 @@ dubbo-client console：
 2021-03-24 14:02:48.957  INFO 18568 --- [:20880-thread-2] c.e.s.service.impl.DubboServiceImpl      : Publish Product：[test]
 ```
 
+## 1-10 基于Dubbo-Admin的服务治理-1
+
+- 什么是Dubbo-Admin
+  - 服务治理可视化
+    - 条件路由、标签路由、黑白名单、服务权重、负载均衡、服务测试
+  - 前端项目
+    - Vue.js + Vuetify 实现
+  - 后端项目
+    - 标准Spring Boot工程
+- 服务治理兼容
+  - Dubbo版本
+    - 2.6 - Everything in Registry center (所有信息都存在注册中心)
+    - 2.7 - 注册中心、配置中心、元数据中心
+
+### 1.10.1 基于DA服务治理（一）
+
+- [Github Download Dubbo-Admin](https://github.com/apache/dubbo-admin)
+- 安装前端工程（安装nodejs环境）
+  - 修改npm代理, 执行npm install
+
+Github 拉取源码
+
+![](.README_images/ce8df80b.png)
+
+> 进入项目或工具打开 dubbo-admin-ui 配置代理: <br>
+npm install -g cnpm --registry=https://registry.npm.taobao.org <br>
+cnpm install
+
+![](.README_images/29925823.png)
 
 <br>
 
