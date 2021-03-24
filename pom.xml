@@ -34,6 +34,8 @@
         <module>sleuth/sleuth-traceB</module>
         <module>zipkin/zipkin-server</module>
         <module>stream/stream-sample</module>
+        <module>dubbo/dubbo-api</module>
+        <module>dubbo/dubbo-client</module>
     </modules>
 
     <dependencyManagement>
