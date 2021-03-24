@@ -352,6 +352,38 @@ cnpm install
 
 ![](.README_images/29925823.png)
 
+
+## 1-11 基于Dubbo-Admin的服务治理-2
+
+### 1.11.1 基于DA服务治理（二）
+
+- 修改Zookeeper冲突端口 (不同的服务器的话就忽略这项, 另外如果使用docker的, 也需要手动添加端口~)
+  - 修改 "/apache-zookeeper-3.6.2-bin/conf/zoo.cfg"
+  - 尾巴添加 "admin.serverPort=63010" 端口号是自定义~ 你喜欢就好！
+  - 修改配置, 必需要重启zk
+- 元数据配置
+- 启动dubbo-admin的前后端项目
+
+
+### 1.11.2 迁移代码库
+
+1. dubbo-admin 复制到本地 springcloud-demo-dec 项目中
+1. 对准 pom.xml 右键添加 add Maven (静待依赖加载...)
+1. 顺序启动后端服务
+    1. DubboClientApplication :63001/
+    1. DubboConsumerApplication :63000/
+    1. DubboAdminApplication :8080/  (dubbo/dubbo-admin-server项目的启动类)
+1. 启动前端服务
+    1. cnpm run dev
+    
+![](.README_images/24e81df9.png)
+
+
+### 1.11.3 访问 Dubbo Admin UI
+
+- http://localhost:8082/
+- 用户密码（注意：root用户的密码是root，guest用户的密码是guest）
+
 <br>
 
 [GitHub](https://github.com/eddie-code) <br>
