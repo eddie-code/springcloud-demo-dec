@@ -36,6 +36,7 @@
         <module>stream/stream-sample</module>
         <module>dubbo/dubbo-api</module>
         <module>dubbo/dubbo-client</module>
+        <module>dubbo/dubbo-consumer</module>
     </modules>
 
     <dependencyManagement>

@@ -1,5 +1,6 @@
 package com.example.springcloud;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
  * @modified by
  */
 @Data
+@Builder
 public class Product implements Serializable {
 
     /**

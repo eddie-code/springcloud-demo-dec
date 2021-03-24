@@ -43,7 +43,7 @@
 
 ### 疑问：
 
-问：按上述所示, 为什么还要用Spring Cloud 和 Eureka?
+问：按上述所示, 为什么还要用Spring Cloud 和 Eureka? <br>
 答：RPC再好也不就是个服务治理框架, 能有Spring Cloud全家桶组件吗?
 
 
@@ -233,14 +233,94 @@ dubbo:
 启动 dubbo-client 查看是否正常
 
 
+## 1-9 【Demo】构建服务消费者 
+
+- 创建dubbo-consumer作为服务调用方
+- 添加Controller并调用dubbo-client中的服务
+- 注意序列化/反序列化的异常
 
 
+### 1.9.1 创建 dubbo-consumer
 
+启动类
+```java
+// com.example.springcloud.DubboConsumerApplication
 
+@EnableDubbo // import org.apache.dubbo.xxxx
+@SpringBootApplication
+public class DubboConsumerApplication {
 
+    public static void main(String[] args) {
+        SpringApplication.run(DubboConsumerApplication.class);
+    }
 
+}
+```
 
+控制层
+```java
+// com.example.springcloud.controller.DemoController#publish
 
+@RestController
+public class DemoController {
+
+    /**
+     * 负载均衡策略: 轮询调度
+     */
+    @DubboReference(loadbalance = "roundrobin")
+    private IDubboService dubboService;
+
+	@PostMapping("/publish")
+	public Product publish(@RequestParam String name) {
+        return dubboService.publish(Product.builder()
+                .name(name)
+                .build()
+        );
+	}
+
+}
+```
+
+application.yml
+```yaml
+server:
+  port: 63000
+
+dubbo:
+  application:
+    name:  dubbo-consumer
+  registry:
+    #address: zookeeper://192.168.8.240:2181 # zookeeper address ip
+    address: zookeeper://192.168.8.240:2181?backup=192.168.8.240:2182,192.168.8.240:2183  # zookeeper cluster address ip
+    timeout: 10000 # 解决 zookeeper not connected - https://blog.csdn.net/weixin_43275277/article/details/106544510
+    protocol: zookeeper
+    check: false
+  # dubbo-admin配置
+  metadata-report:
+    address: zookeeper://192.168.8.240:2181?backup=192.168.8.240:2182,192.168.8.240:2183  # zookeeper cluster address ip
+  monitor:
+    protocol: register
+  consumer:
+    # 启动时检查服务提供者是否存在，不存在就报错
+    check: false
+    timeout: 3000
+```
+
+### 1.9.2 测试
+
+使用 PostMan
+
+![](.README_images/b27f300b.png)
+
+dubbo-consumer console：
+
+![](.README_images/f4c017c5.png)
+
+dubbo-client console：
+
+```text
+2021-03-24 14:02:48.957  INFO 18568 --- [:20880-thread-2] c.e.s.service.impl.DubboServiceImpl      : Publish Product：[test]
+```
 
 
 <br>

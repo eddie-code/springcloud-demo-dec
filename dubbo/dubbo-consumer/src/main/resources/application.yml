@@ -1,18 +1,21 @@
 server:
-  port: 63001
+  port: 63000
 
 dubbo:
   application:
-    name: dubbo-client
+    name:  dubbo-consumer
   registry:
     #address: zookeeper://192.168.8.240:2181 # zookeeper address ip
     address: zookeeper://192.168.8.240:2181?backup=192.168.8.240:2182,192.168.8.240:2183  # zookeeper cluster address ip
     timeout: 10000 # 解决 zookeeper not connected - https://blog.csdn.net/weixin_43275277/article/details/106544510
     protocol: zookeeper
-    check: false # 启动时检查是否存在，注册中心不存在就报错
+    check: false
+  # dubbo-admin配置
   metadata-report:
     address: zookeeper://192.168.8.240:2181?backup=192.168.8.240:2182,192.168.8.240:2183  # zookeeper cluster address ip
-  protocol:  # 协议配置
-    name: dubbo     # name必填，指定协议类型
   monitor:
-    protocol: register # 用于配置连接监控中心相关信息，可选
+    protocol: register
+  consumer:
+    # 启动时检查服务提供者是否存在，不存在就报错
+    check: false
+    timeout: 3000
